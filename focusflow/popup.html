@@ -18,20 +18,20 @@
     }
 
     :root {
-      --accent: #2C7A7B;
-      --accent-hover: #285E61;
-      --accent-light: #E6FFFA;
+      --accent: #5A67D8;
+      --accent-hover: #4C51BF;
+      --accent-light: #EBF4FF;
       --bg: #F7FAFC;
       --surface: #FFFFFF;
       --text: #2D3748;
       --muted: #718096;
       --border: #E2E8F0;
-      --success: #38B2AC;
+      --success: #10B981;
       --error: #E53E3E;
       --warning: #DD6B20;
       --font: 'Lexend', system-ui, sans-serif;
       --radius: 12px;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --shadow: 0 4px 20px rgba(90, 103, 216, 0.08);
     }
 
     body {
@@ -188,12 +188,12 @@
       justify-content: center;
       gap: 10px;
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 12px rgba(44, 122, 123, 0.2);
+      box-shadow: 0 4px 12px rgba(90, 103, 216, 0.25);
     }
 
     .btn-primary:hover:not(:disabled) {
       background: var(--accent-hover);
-      box-shadow: 0 6px 16px rgba(44, 122, 123, 0.3);
+      box-shadow: 0 6px 16px rgba(90, 103, 216, 0.35);
       transform: translateY(-1px);
     }
 
@@ -249,7 +249,7 @@
 
     .btn-secondary.loading .spinner {
       display: block;
-      border-color: rgba(44, 122, 123, 0.3);
+      border-color: rgba(90, 103, 216, 0.3);
       border-top-color: var(--accent);
     }
 
@@ -604,7 +604,7 @@
     <!-- Summarize button -->
     <button class="btn-secondary" id="summarizeBtn" aria-label="Summarize with AI">
       <span class="spinner" aria-hidden="true"></span>
-      <span class="btn-label">🪷 Summarize with AI</span>
+      <span class="btn-label">🪷 Summarize Page</span>
     </button>
 
     <!-- Message area -->

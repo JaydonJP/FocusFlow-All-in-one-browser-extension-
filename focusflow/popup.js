@@ -81,7 +81,7 @@ const setBtnLoading = (label = "Applying…") => {
 /**
  * Sets the summarize button into a loading state.
  */
-const setSummarizeBtnLoading = (loading, label = "🪷 Summarize with AI") => {
+const setSummarizeBtnLoading = (loading, label = "🪷 Summarize Page") => {
     if (loading) {
         summarizeBtn.className = "btn-secondary loading";
         summarizeBtn.disabled = true;
