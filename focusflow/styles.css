@@ -1,0 +1,1012 @@
+/* ============================================================
+   FocusFlow - styles.css
+   ADHD-friendly "Minimalist Light Mode" overlay.
+   All rules are scoped under .focusflow-active on <html>
+   to prevent leaking styles when Focus Mode is OFF.
+   ============================================================ */
+
+/* ── Google Fonts Import ────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&display=swap');
+
+/* ── Variables ──────────────────────────────────────────────── */
+:root {
+  --ff-bg: #FAFAFA;
+  --ff-surface: #FFFFFF;
+  --ff-text-primary: #1A1A2E;
+  --ff-text-secondary: #4A5568;
+  --ff-accent: #5A67D8;
+  --ff-accent-light: #EBF4FF;
+  --ff-border: #E2E8F0;
+  --ff-bullet-marker: #5A67D8;
+  --ff-max-width: 800px;
+  --ff-line-height: 1.7;
+  --ff-font: 'Lexend', 'Inter', system-ui, -apple-system, sans-serif;
+  --ff-radius: 12px;
+  --ff-shadow: 0 4px 24px rgba(90, 103, 216, 0.08);
+}
+
+/* ── Global Page Reset (Focus Mode only) ────────────────────── */
+html.focusflow-active,
+html.focusflow-active body {
+  background-color: var(--ff-bg) !important;
+  font-family: var(--ff-font) !important;
+  color: var(--ff-text-primary) !important;
+  font-size: 17px !important;
+  line-height: var(--ff-line-height) !important;
+  -webkit-font-smoothing: antialiased !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* ── Hide ONLY unambiguous ad/spam elements ─────────────────── */
+/* IMPORTANT: We do NOT hide nav, header, aside, footer, or class
+   substrings like "banner"/"sidebar"/"widget" — those broad rules
+   wiped out the entire Wikipedia page. Only target provably-ad
+   elements with very specific attribute selectors.              */
+html.focusflow-active [data-ad],
+html.focusflow-active [data-ads],
+html.focusflow-active [id^="google_ads"],
+html.focusflow-active [id^="div-gpt-ad"],
+html.focusflow-active iframe[src*="doubleclick"],
+html.focusflow-active iframe[src*="googlesyndication"],
+html.focusflow-active [class*="cookie-banner"],
+html.focusflow-active [class*="cookie-notice"],
+html.focusflow-active [class*="gdpr-banner"],
+html.focusflow-active [class*="newsletter-popup"],
+html.focusflow-active [class*="subscribe-popup"],
+html.focusflow-active [id*="paywall"] {
+  display: none !important;
+}
+
+/* ── Content Readability ─────────────────────────────────────── */
+/* Sites set their own narrow max-width on article/main.
+   We override with ~55vw so content fills about half the screen.
+   max-width: none cancels the site's own constraint first. */
+html.focusflow-active article,
+html.focusflow-active main,
+html.focusflow-active [role="main"] {
+  max-width: none !important;
+  width: min(55vw, 1100px) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  background: var(--ff-surface) !important;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+html.focusflow-active h1,
+html.focusflow-active h2,
+html.focusflow-active h3,
+html.focusflow-active h4 {
+  font-family: var(--ff-font) !important;
+  color: var(--ff-text-primary) !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  margin-top: 1.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+html.focusflow-active p {
+  margin-bottom: 1.2em !important;
+  color: var(--ff-text-secondary) !important;
+}
+
+html.focusflow-active a {
+  color: var(--ff-accent) !important;
+  text-decoration: underline !important;
+}
+
+html.focusflow-active img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  margin: 1rem 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Bionic Reading (Dyslexia Profile — JS-powered)
+   Applied by content.js when the dyslexia profile is ON.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Bold prefix letters — slightly heavier than surrounding text */
+b.ff-bionic {
+  font-weight: 700;
+  color: inherit;
+  font-style: inherit;
+  /* Match the parent's font so only weight differs — no layout shift */
+}
+
+/* Cursor hint: the whole page has bionic applied, no special cursor needed */
+
+/* ═══════════════════════════════════════════════════════════════
+   Text-to-Speech Bar (Elderly Profile — JS-powered)
+   Injected into the page by content.js when elderly profile is ON.
+   ═══════════════════════════════════════════════════════════════ */
+
+#ff-tts-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  /* always on top */
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #1A1A2E;
+  color: #FFFFFF;
+  padding: 12px 22px;
+  border-radius: 60px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  /* Smooth appear */
+  animation: ff-tts-fadein 0.25s ease;
+}
+
+@keyframes ff-tts-fadein {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+#ff-tts-label {
+  color: #E2E8F0;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+#ff-tts-btns {
+  display: flex;
+  gap: 8px;
+}
+
+#ff-tts-btns button {
+  all: unset;
+  cursor: pointer;
+  background: #5A67D8;
+  color: #FFFFFF;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+#ff-tts-btns button:hover {
+  background: #4C56BB;
+  transform: scale(1.04);
+}
+
+#ff-tts-btns button:active {
+  transform: scale(0.97);
+}
+
+/* Clickable elements in TTS mode: subtle pointer + hover highlight */
+[data-ff-tts="1"] {
+  cursor: pointer !important;
+  border-radius: 4px;
+  transition: background 0.12s ease;
+}
+
+[data-ff-tts="1"]:hover {
+  background: rgba(90, 103, 216, 0.08) !important;
+  outline: 1px solid rgba(90, 103, 216, 0.2) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Summary Banner Styles (always active, not scoped to focus mode)
+   ═══════════════════════════════════════════════════════════════ */
+#focusflow-summary-banner {
+  width: 100%;
+  max-width: 960px;
+  margin: 24px auto 32px auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+  font-family: var(--ff-font), system-ui, sans-serif;
+  display: block !important;
+}
+
+.ff-banner-inner {
+  background: linear-gradient(135deg, #EBF4FF 0%, #F0F4FF 100%);
+  border: 1.5px solid var(--ff-border);
+  border-left: 4px solid var(--ff-accent);
+  border-radius: var(--ff-radius);
+  padding: 24px 28px;
+  box-shadow: var(--ff-shadow);
+}
+
+.ff-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ff-logo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ff-accent);
+  letter-spacing: 0.05em;
+}
+
+.ff-badge {
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--ff-accent);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ff-article-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ff-text-primary);
+  margin: 0 0 16px 0;
+  line-height: 1.35;
+}
+
+.ff-bullets {
+  margin: 0;
+}
+
+/* ── Structured summary sections ── */
+.ff-section {
+  margin-bottom: 18px;
+}
+
+.ff-section:last-child {
+  margin-bottom: 0;
+}
+
+.ff-section-heading {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ff-accent);
+  margin: 0 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(90, 103, 216, 0.2);
+}
+
+.ff-bullet-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ff-bullet-list li {
+  position: relative;
+  padding-left: 28px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ff-text-primary);
+  font-weight: 400;
+}
+
+.ff-bullet-list li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: var(--ff-accent);
+  font-size: 14px;
+  top: 2px;
+  font-weight: 600;
+}
+
+.ff-caption {
+  font-size: 11px;
+  color: var(--ff-text-secondary);
+  margin: 16px 0 0 0;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCESSIBILITY PROFILES
+   Each profile is triggered by a class on <html>.
+   Profiles are independent and stackable.
+   None requires the LLM or Focus Mode to be active.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. ADHD Profile ────────────────────────────────────────────
+   Goal: Reduce distraction, remove visual motion, and surface a
+   subtle "reading rail" so users don't lose their place.        */
+
+/* Kill page animations & transitions */
+html.ff-adhd *,
+html.ff-adhd *::before,
+html.ff-adhd *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Un-stick sticky headers / toolbars (common ADHD distractor) */
+html.ff-adhd [class*="sticky"],
+html.ff-adhd [class*="fixed"],
+html.ff-adhd [style*="position: fixed"],
+html.ff-adhd [style*="position:fixed"] {
+  position: relative !important;
+  top: auto !important;
+}
+
+/* Soft paragraph hover highlight – reading rail */
+html.ff-adhd p:hover,
+html.ff-adhd li:hover {
+  background: rgba(90, 103, 216, 0.07) !important;
+  border-radius: 4px !important;
+  outline: none !important;
+}
+
+/* Strong, visible focus rings for keyboard navigation */
+html.ff-adhd :focus-visible {
+  outline: 3px solid #5A67D8 !important;
+  outline-offset: 3px !important;
+  border-radius: 4px !important;
+}
+
+/* Mute blinking / flashing elements */
+html.ff-adhd [class*="blink"],
+html.ff-adhd [class*="flash"],
+html.ff-adhd [class*="pulse"],
+html.ff-adhd [class*="marquee"],
+html.ff-adhd blink {
+  animation: none !important;
+  visibility: visible !important;
+}
+
+/* Slightly reduce image brightness to de-emphasise non-text */
+html.ff-adhd img {
+  filter: brightness(0.92) !important;
+}
+
+
+/* ── 2. Dyslexia Profile ─────────────────────────────────────────
+   Goal: Optimise letterform recognition and reduce visual crowding.
+   Uses Lexend (already loaded) which was designed for this purpose. */
+
+html.ff-dyslexia body,
+html.ff-dyslexia p,
+html.ff-dyslexia li,
+html.ff-dyslexia td,
+html.ff-dyslexia blockquote,
+html.ff-dyslexia div {
+  font-family: 'Lexend', system-ui, sans-serif !important;
+  letter-spacing: 0.08em !important;
+  word-spacing: 0.22em !important;
+  line-height: 2.0 !important;
+  text-align: left !important;
+  /* Never justify – creates rivers */
+}
+
+html.ff-dyslexia body {
+  background-color: #FFFEF0 !important;
+  /* Warm cream reduces visual stress */
+  font-size: 18px !important;
+  color: #1A1A1A !important;
+}
+
+/* Remove italic — dyslexics find it much harder to decode */
+html.ff-dyslexia em,
+html.ff-dyslexia i,
+html.ff-dyslexia cite {
+  font-style: normal !important;
+  font-weight: 500 !important;
+  color: #6B4C00 !important;
+  /* Use color to preserve emphasis */
+}
+
+/* Soften underlines so they don't merge with descenders */
+html.ff-dyslexia a {
+  text-underline-offset: 4px !important;
+  text-decoration-thickness: 1px !important;
+}
+
+/* Increase paragraph breathing room */
+html.ff-dyslexia p {
+  margin-bottom: 1.6em !important;
+}
+
+/* Widen headings for easier scanning */
+html.ff-dyslexia h1,
+html.ff-dyslexia h2,
+html.ff-dyslexia h3 {
+  letter-spacing: 0.04em !important;
+  word-spacing: 0.1em !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+}
+
+/* Subtle line tint on hover to help track position */
+html.ff-dyslexia p:hover {
+  background: rgba(255, 200, 80, 0.15) !important;
+  border-radius: 3px !important;
+}
+
+
+/* ── 3. Elderly Profile ──────────────────────────────────────────
+   Goal: Larger text, higher contrast, bigger touch targets, 
+   and unambiguously styled links.                               */
+
+html.ff-elderly body {
+  font-size: 20px !important;
+  line-height: 1.9 !important;
+  color: #111111 !important;
+  background: #FFFFFF !important;
+}
+
+html.ff-elderly p {
+  font-size: 20px !important;
+  margin-bottom: 1.4em !important;
+  color: #111111 !important;
+}
+
+html.ff-elderly h1 {
+  font-size: 2.0em !important;
+}
+
+html.ff-elderly h2 {
+  font-size: 1.7em !important;
+}
+
+html.ff-elderly h3 {
+  font-size: 1.5em !important;
+}
+
+html.ff-elderly h4 {
+  font-size: 1.3em !important;
+}
+
+/* High-contrast, clearly underlined links */
+html.ff-elderly a {
+  color: #0000CC !important;
+  text-decoration: underline !important;
+  font-weight: 600 !important;
+  text-underline-offset: 3px !important;
+}
+
+html.ff-elderly a:visited {
+  color: #551A8B !important;
+}
+
+/* Minimum 48px tap/click targets on all interactive elements */
+html.ff-elderly button,
+html.ff-elderly input,
+html.ff-elderly select,
+html.ff-elderly textarea,
+html.ff-elderly [role="button"] {
+  min-height: 48px !important;
+  font-size: 18px !important;
+  padding: 10px 16px !important;
+}
+
+/* Larger, high-contrast images with clear borders */
+html.ff-elderly img {
+  border: 1px solid #CCCCCC !important;
+  border-radius: 4px !important;
+  filter: contrast(1.05) !important;
+}
+
+/* Bold table text for clarity */
+html.ff-elderly td,
+html.ff-elderly th {
+  font-size: 18px !important;
+  padding: 10px 12px !important;
+  border: 1px solid #999999 !important;
+}
+
+
+/* ── 4. Autism Profile ───────────────────────────────────────────
+   Goal: Eliminate sensory surprises — zero animation, stable layout,
+   muted colours, no unexpected hover effects.                   */
+
+/* Hard-stop ALL motion */
+html.ff-autism *,
+html.ff-autism *::before,
+html.ff-autism *::after {
+  animation: none !important;
+  animation-duration: 0.01ms !important;
+  transition: none !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Muted, neutral page background */
+html.ff-autism body {
+  background: #F5F5F5 !important;
+  color: #1C1C1C !important;
+}
+
+/* Desaturate images slightly — reduces visual overload */
+html.ff-autism img,
+html.ff-autism video {
+  filter: saturate(70%) brightness(0.97) !important;
+}
+
+/* Suppress autoplay video entirely */
+html.ff-autism video[autoplay] {
+  display: none !important;
+}
+
+/* Kill rotating / sliding / blinking widgets */
+html.ff-autism [class*="carousel"],
+html.ff-autism [class*="slider"],
+html.ff-autism [class*="rotate"],
+html.ff-autism [class*="marquee"],
+html.ff-autism [class*="ticker"],
+html.ff-autism [class*="scroll-text"] {
+  animation: none !important;
+  overflow: hidden !important;
+}
+
+/* Remove surprise hover color changes (allow bg/color to stay stable) */
+html.ff-autism a:hover,
+html.ff-autism button:hover,
+html.ff-autism [role="button"]:hover {
+  background: inherit !important;
+  color: inherit !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Predictable, understated link style */
+html.ff-autism a {
+  color: #2B4B7E !important;
+  text-decoration: underline !important;
+}
+
+/* Consistent paragraph spacing */
+html.ff-autism p {
+  margin-bottom: 1.2em !important;
+  line-height: 1.75 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FLOATING WIDGET
+   A draggable floating action button (FAB) injected by content.js.
+   All rules use IDs / the ff-* namespace so they never bleed.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Floating Widget Wrapper ─────────────────────────────────── */
+#ff-floating-widget {
+  position: fixed !important;
+  z-index: 2147483646 !important;
+  /* below only TTS bar */
+  width: 56px;
+  height: 56px;
+  /* The FAB button itself is drawn via a ::before pseudo */
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Entrance animation */
+  animation: ff-widget-intro 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes ff-widget-intro {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-30deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* The actual circular button */
+#ff-floating-widget::before {
+  content: "⚡";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  background: linear-gradient(135deg, #5A67D8 0%, #667EEA 100%);
+  border-radius: 50%;
+  box-shadow: 0 4px 20px rgba(90, 103, 216, 0.55),
+    0 0 0 3px rgba(90, 103, 216, 0.18);
+  transition: transform 0.2s cubic-bezier(.34, 1.56, .64, 1),
+    box-shadow 0.2s ease;
+}
+
+#ff-floating-widget:hover::before {
+  transform: scale(1.1);
+  box-shadow: 0 6px 28px rgba(90, 103, 216, 0.7),
+    0 0 0 4px rgba(90, 103, 216, 0.25);
+}
+
+/* While dragging */
+#ff-floating-widget.ff-widget--dragging {
+  cursor: grabbing;
+}
+
+#ff-floating-widget.ff-widget--dragging::before {
+  transform: scale(0.92);
+  box-shadow: 0 2px 10px rgba(90, 103, 216, 0.4),
+    0 0 0 2px rgba(90, 103, 216, 0.15);
+}
+
+/* Pulse red glow when hovering over delete zone */
+#ff-floating-widget.ff-widget--near-delete::before {
+  background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.6),
+    0 0 0 4px rgba(239, 68, 68, 0.25);
+  animation: ff-widget-danger-pulse 0.4s ease infinite alternate;
+}
+
+@keyframes ff-widget-danger-pulse {
+  from {
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5), 0 0 0 3px rgba(239, 68, 68, 0.2);
+  }
+
+  to {
+    box-shadow: 0 6px 30px rgba(239, 68, 68, 0.85), 0 0 0 6px rgba(239, 68, 68, 0.3);
+  }
+}
+
+/* Delete (dissolve) animation */
+#ff-floating-widget.ff-widget--explode {
+  animation: ff-widget-explode 0.65s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
+}
+
+@keyframes ff-widget-explode {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+
+  30% {
+    transform: scale(1.5);
+    opacity: 1;
+    filter: brightness(1.8) saturate(0);
+  }
+
+  100% {
+    transform: scale(0.05);
+    opacity: 0;
+    filter: brightness(2) saturate(0);
+  }
+}
+
+/* ── Feature Panel ───────────────────────────────────────────── */
+#ff-floating-panel {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 230px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(26, 26, 46, 0.18),
+    0 2px 8px rgba(26, 26, 46, 0.06);
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  /* Hidden by default */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px) scale(0.96);
+  transform-origin: bottom right;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* If the widget is near the left edge, open panel to the right */
+#ff-floating-widget[style*="left: 0"] #ff-floating-panel,
+#ff-floating-widget[style*="left: 1"] #ff-floating-panel,
+#ff-floating-widget[style*="left: 2"] #ff-floating-panel,
+#ff-floating-widget[style*="left: 3"] #ff-floating-panel,
+#ff-floating-widget[style*="left: 4"] #ff-floating-panel,
+#ff-floating-widget[style*="left: 5"] #ff-floating-panel {
+  right: auto;
+  left: 0;
+  transform-origin: bottom left;
+}
+
+#ff-floating-panel.ff-panel--open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0) scale(1);
+}
+
+/* Panel Header */
+.ff-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+  background: linear-gradient(135deg, #5A67D8, #667EEA);
+}
+
+.ff-panel-logo {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.01em;
+}
+
+.ff-panel-close {
+  all: unset;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ff-panel-close:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Section labels */
+.ff-panel-section-label {
+  padding: 8px 14px 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9CA3AF;
+}
+
+/* Panel footer hint */
+.ff-panel-footer {
+  padding: 8px 14px 10px;
+  font-size: 9px;
+  color: #CBD5E0;
+  text-align: center;
+  border-top: 1px solid #F1F5F9;
+  letter-spacing: 0.02em;
+}
+
+/* ── Panel Item (feature button) ─────────────────────────────── */
+.ff-panel-item {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #F8FAFC;
+  transition: background 0.14s ease;
+  position: relative;
+}
+
+.ff-panel-item:last-of-type {
+  border-bottom: none;
+}
+
+.ff-panel-item:hover {
+  background: #F8FAFC;
+}
+
+.ff-panel-item:active {
+  background: #EBF4FF;
+}
+
+/* Loading state */
+.ff-panel-item--loading {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.ff-panel-item--loading .ff-pi-icon::after {
+  content: " ⟳";
+  animation: ff-spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes ff-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ff-pi-icon {
+  font-size: 17px;
+  flex-shrink: 0;
+  line-height: 1;
+  width: 24px;
+  text-align: center;
+}
+
+.ff-pi-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ff-pi-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1A1A2E;
+  line-height: 1.2;
+}
+
+.ff-pi-desc {
+  font-size: 10px;
+  color: #9CA3AF;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Toggle dot */
+.ff-pi-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #D1D5DB;
+  flex-shrink: 0;
+  transition: background 0.18s, border-color 0.18s, transform 0.18s;
+}
+
+.ff-pi-dot--on {
+  background: #5A67D8;
+  border-color: #5A67D8;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.2);
+}
+
+/* Active item (focus mode — indigo) */
+.ff-panel-item--active[data-action="TOGGLE_FOCUS"] {
+  background: #EBF4FF;
+}
+
+.ff-panel-item--active[data-action="TOGGLE_FOCUS"] .ff-pi-name {
+  color: #5A67D8;
+}
+
+/* Active profile colours */
+.ff-panel-item--adhd.ff-panel-item--active {
+  background: #EBF4FF;
+}
+
+.ff-panel-item--adhd.ff-panel-item--active .ff-pi-dot--on {
+  background: #5A67D8;
+  border-color: #5A67D8;
+}
+
+.ff-panel-item--dyslexia.ff-panel-item--active {
+  background: #FFFBEB;
+}
+
+.ff-panel-item--dyslexia.ff-panel-item--active .ff-pi-dot--on {
+  background: #D97706;
+  border-color: #D97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2);
+}
+
+.ff-panel-item--elderly.ff-panel-item--active {
+  background: #ECFDF5;
+}
+
+.ff-panel-item--elderly.ff-panel-item--active .ff-pi-dot--on {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+}
+
+.ff-panel-item--autism.ff-panel-item--active {
+  background: #ECFEFF;
+}
+
+.ff-panel-item--autism.ff-panel-item--active .ff-pi-dot--on {
+  background: #0891B2;
+  border-color: #0891B2;
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.2);
+}
+
+/* ── Delete Zone (top-center pill) ──────────────────────────── */
+#ff-delete-zone {
+  position: fixed !important;
+  z-index: 2147483645 !important;
+  /* Anchored to the top-horizontal-centre */
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  /* Wide pill shape */
+  width: auto;
+  min-width: 140px;
+  height: 48px;
+  padding: 0 20px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+  border-top: none;
+  border-radius: 0 0 28px 28px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #EF4444;
+  font-family: 'Lexend', system-ui, sans-serif;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(.34, 1.56, .64, 1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* SVG X icon sizing */
+#ff-delete-zone svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+#ff-delete-zone small {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+#ff-delete-zone.ff-delete-zone--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Widget Toast ─────────────────────────────────────────────── */
+#ff-widget-toast {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  max-width: 260px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-family: 'Lexend', system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#ff-widget-toast.ff-widget-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ff-widget-toast--info {
+  background: #EBF4FF;
+  color: #3730A3;
+}
+
+.ff-widget-toast--error {
+  background: #FEF2F2;
+  color: #C53030;
+}
+
+.ff-widget-toast--success {
+  background: #F0FDF4;
+  color: #166534;
+}

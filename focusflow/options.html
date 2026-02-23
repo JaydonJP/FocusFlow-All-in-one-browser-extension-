@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FocusFlow – Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --accent: #5A67D8;
+            --accent-hover: #4C51BF;
+            --accent-light: #EBF4FF;
+            --bg: #F7F8FC;
+            --surface: #FFFFFF;
+            --text: #1A1A2E;
+            --muted: #6B7280;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --error: #EF4444;
+            --font: 'Lexend', system-ui, sans-serif;
+            --radius: 12px;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 48px 16px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 8px 32px rgba(90, 103, 216, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #5A67D8, #667EEA);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 4px 14px rgba(90, 103, 216, 0.3);
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .input-wrap {
+            position: relative;
+            display: flex;
+        }
+
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 48px 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 14px;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.15);
+        }
+
+        .toggle-vis {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--muted);
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .toggle-vis:hover {
+            color: var(--accent);
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .hint a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .hint a:hover {
+            text-decoration: underline;
+        }
+
+        /* Info box */
+        .info-box {
+            background: var(--accent-light);
+            border: 1px solid rgba(90, 103, 216, 0.2);
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 13px;
+            color: #3730A3;
+            line-height: 1.55;
+            margin-bottom: 24px;
+        }
+
+        .info-box strong {
+            font-weight: 600;
+        }
+
+        /* Button */
+        .btn-save {
+            width: 100%;
+            padding: 13px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-family: var(--font);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 14px rgba(90, 103, 216, 0.35);
+            letter-spacing: 0.01em;
+        }
+
+        .btn-save:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(90, 103, 216, 0.4);
+        }
+
+        .btn-save:active {
+            transform: translateY(0);
+        }
+
+        /* Status message */
+        .save-status {
+            margin-top: 14px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            height: 20px;
+            transition: opacity 0.3s;
+        }
+
+        .save-status.success {
+            color: var(--success);
+        }
+
+        .save-status.error {
+            color: var(--error);
+        }
+
+        /* Divider */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 28px 0;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 14px;
+        }
+
+        .model-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #F3F4F6;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <!-- Header -->
+        <div class="card-header">
+            <div class="logo">⚡</div>
+            <div>
+                <h1>FocusFlow Settings</h1>
+                <div class="subtitle">Configure your ADHD-friendly reader</div>
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="info-box">
+            <strong>🔒 Your API key is stored locally</strong> using Chrome's encrypted storage. It is never sent to any
+            server other than Hugging Face's official API endpoint.
+        </div>
+
+        <!-- API Key form -->
+        <div class="form-group">
+            <label for="apiKeyInput">Hugging Face API Key</label>
+            <div class="input-wrap">
+                <input type="password" id="apiKeyInput" placeholder="hf_xxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"
+                    spellcheck="false" />
+                <button class="toggle-vis" id="toggleVis" aria-label="Toggle key visibility"
+                    title="Show/hide key">👁</button>
+            </div>
+            <p class="hint">
+                Get a free key at <a href="https://huggingface.co/settings/tokens" target="_blank"
+                    rel="noopener">huggingface.co/settings/tokens</a>.
+                A free account gives access to Qwen-Coder.
+            </p>
+        </div>
+
+        <button class="btn-save" id="saveBtn">Save API Key</button>
+        <div class="save-status" id="saveStatus"></div>
+
+        <hr class="divider" />
+
+        <!-- Model info -->
+        <div class="section-title">Active Model</div>
+        <div class="model-badge">
+            🤖 Qwen/Qwen2.5-Coder-32B-Instruct
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+
+</html>

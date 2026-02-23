@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --accent: #5A67D8;
+      --accent-hover: #4C51BF;
+      --accent-light: #EBF4FF;
+      --bg: #FAFAFA;
+      --surface: #FFFFFF;
+      --text: #1A1A2E;
+      --muted: #6B7280;
+      --border: #E2E8F0;
+      --success: #10B981;
+      --error: #EF4444;
+      --warning: #F59E0B;
+      --font: 'Lexend', system-ui, sans-serif;
+      --radius: 10px;
+      --shadow: 0 4px 20px rgba(90, 103, 216, 0.12);
+    }
+
+    body {
+      width: 340px;
+      min-height: 200px;
+      background: var(--bg);
+      font-family: var(--font);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #5A67D8, #667EEA);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-icon {
+      width: 30px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .brand-text {
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-tagline {
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 10px;
+      font-weight: 300;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .options-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 6px 8px;
+      transition: background 0.2s;
+    }
+
+    .options-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* ── Main Body ── */
+    .main {
+      padding: 16px 20px 20px;
+    }
+
+    /* Status bar */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      margin-bottom: 14px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .status-dot.active {
+      background: var(--success);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .status-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .status-text.active {
+      color: var(--text);
+    }
+
+    /* Word count chip */
+    .word-chip {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 500;
+      background: var(--accent-light);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .word-chip.visible {
+      opacity: 1;
+    }
+
+    /* Primary action button */
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(90, 103, 216, 0.35);
+      letter-spacing: 0.01em;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 6px 18px rgba(90, 103, 216, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary.off-state {
+      background: #fff;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      box-shadow: none;
+    }
+
+    .btn-primary.off-state:hover:not(:disabled) {
+      background: var(--accent-light);
+      box-shadow: none;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn-primary.loading .spinner {
+      display: block;
+    }
+
+    .btn-primary.loading .btn-label {
+      display: none;
+    }
+
+    .btn-primary.off-state .spinner {
+      border-color: rgba(90, 103, 216, 0.3);
+      border-top-color: var(--accent);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Message area */
+    .message-area {
+      margin-top: 12px;
+      min-height: 36px;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.25s, transform 0.25s;
+    }
+
+    .message.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .message.error {
+      background: #FEF2F2;
+      color: #C53030;
+    }
+
+    .message.success {
+      background: #F0FDF4;
+      color: #166534;
+    }
+
+    .message.info {
+      background: var(--accent-light);
+      color: #3730A3;
+    }
+
+    .message-icon {
+      flex-shrink: 0;
+      font-size: 13px;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 10px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-link {
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: var(--font);
+      padding: 0;
+    }
+
+    .footer-link:hover {
+      color: var(--accent);
+    }
+
+    .footer-version {
+      font-size: 10px;
+      color: var(--border);
+    }
+
+    /* ── Profiles Section ── */
+    .profiles-section {
+      padding: 0 20px 16px;
+    }
+
+    .profiles-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .profiles-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .profile-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 11px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s, transform 0.12s;
+      text-align: left;
+      font-family: var(--font);
+      width: 100%;
+    }
+
+    .profile-chip:hover {
+      transform: translateY(-1px);
+    }
+
+    .profile-chip:active {
+      transform: translateY(0);
+    }
+
+    /* Active state per profile */
+    .profile-chip.active[data-profile="adhd"] {
+      border-color: #5A67D8;
+      background: #EBF4FF;
+    }
+
+    .profile-chip.active[data-profile="dyslexia"] {
+      border-color: #D97706;
+      background: #FFFBEB;
+    }
+
+    .profile-chip.active[data-profile="elderly"] {
+      border-color: #059669;
+      background: #ECFDF5;
+    }
+
+    .profile-chip.active[data-profile="autism"] {
+      border-color: #0891B2;
+      background: #ECFEFF;
+    }
+
+    .chip-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .chip-text {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .chip-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .chip-desc {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    /* Colored check dot when active */
+    .chip-check {
+      margin-left: auto;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0;
+      transition: all 0.18s;
+    }
+
+    .profile-chip.active[data-profile="adhd"] .chip-check {
+      background: #5A67D8;
+      border-color: #5A67D8;
+    }
+
+    .profile-chip.active[data-profile="dyslexia"] .chip-check {
+      background: #D97706;
+      border-color: #D97706;
+    }
+
+    .profile-chip.active[data-profile="elderly"] .chip-check {
+      background: #059669;
+      border-color: #059669;
+    }
+
+    .profile-chip.active[data-profile="autism"] .chip-check {
+      background: #0891B2;
+      border-color: #0891B2;
+    }
+
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 20px 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-text">FocusFlow</div>
+        <div class="brand-tagline">ADHD-Friendly Reader</div>
+      </div>
+    </div>
+    <button class="options-btn" id="optionsBtn" title="Settings" aria-label="Open Settings">⚙</button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Status -->
+    <div class="status-bar" id="statusBar" role="status" aria-live="polite">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-text" id="statusText">Focus Mode is off</span>
+      <span class="word-chip" id="wordChip"></span>
+    </div>
+
+    <!-- Main action button -->
+    <button class="btn-primary" id="mainBtn" aria-label="Simplify this page">
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="btn-label">⚡ Simplify This Page</span>
+    </button>
+
+    <!-- Message area -->
+    <div class="message-area" aria-live="polite">
+      <div class="message" id="messageBox" role="alert">
+        <span class="message-icon" id="messageIcon"></span>
+        <span id="messageText"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profiles Section -->
+  <div class="section-divider"></div>
+  <div class="profiles-section">
+    <div class="profiles-label">♿ Accessibility Profiles</div>
+    <div class="profiles-grid" id="profilesGrid" role="group" aria-label="Accessibility profile toggles">
+      <button class="profile-chip" data-profile="adhd" aria-pressed="false">
+        <span class="chip-icon">🎯</span>
+        <div class="chip-text">
+          <span class="chip-name">ADHD</span>
+          <span class="chip-desc">Calm & focused</span>
+        </div>
+        <span class="chip-check" aria-hidden="true"></span>
+      </button>
+
+      <button class="profile-chip" data-profile="dyslexia" aria-pressed="false">
+        <span class="chip-icon">📖</span>
+        <div class="chip-text">
+          <span class="chip-name">Dyslexia</span>
+          <span class="chip-desc">Better spacing</span>
+        </div>
+        <span class="chip-check" aria-hidden="true"></span>
+      </button>
+
+      <button class="profile-chip" data-profile="elderly" aria-pressed="false">
+        <span class="chip-icon">🔡</span>
+        <div class="chip-text">
+          <span class="chip-name">Elderly</span>
+          <span class="chip-desc">Larger & clearer</span>
+        </div>
+        <span class="chip-check" aria-hidden="true"></span>
+      </button>
+
+      <button class="profile-chip" data-profile="autism" aria-pressed="false">
+        <span class="chip-icon">🤫</span>
+        <div class="chip-text">
+          <span class="chip-name">Autism</span>
+          <span class="chip-desc">No motion or noise</span>
+        </div>
+        <span class="chip-check" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <button class="footer-link" id="openOptionsLink">Set API Key</button>
+    <span class="footer-version">v1.0.0</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
