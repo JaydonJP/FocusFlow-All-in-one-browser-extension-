@@ -15,15 +15,26 @@
       "16": "icons/icon16.png",
       "48": "icons/icon48.png"
     },
-    "default_title": "FocusFlow – Simplify This Page"
+    "default_title": "FocusFlow – Block Ads & Simplify"
   },
   "options_page": "options.html",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "declarativeNetRequest"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ad_blocking",
+        "enabled": false,
+        "path": "rules/ad-rules.json"
+      }
+    ]
+  },
   "host_permissions": [
+    "<all_urls>",
     "https://router.huggingface.co/*"
   ],
   "content_scripts": [

@@ -447,31 +447,40 @@ html.ff-dyslexia p:hover {
 
 html.ff-elderly body {
   font-size: 20px !important;
-  line-height: 1.9 !important;
+  line-height: 2.1 !important;
   color: #111111 !important;
   background: #FFFFFF !important;
 }
 
 html.ff-elderly p {
   font-size: 20px !important;
-  margin-bottom: 1.4em !important;
+  line-height: 2.1 !important;
+  margin-bottom: 1.6em !important;
   color: #111111 !important;
 }
 
 html.ff-elderly h1 {
   font-size: 2.0em !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0.6em !important;
 }
 
 html.ff-elderly h2 {
   font-size: 1.7em !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0.5em !important;
 }
 
 html.ff-elderly h3 {
   font-size: 1.5em !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0.5em !important;
 }
 
 html.ff-elderly h4 {
   font-size: 1.3em !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0.4em !important;
 }
 
 /* High-contrast, clearly underlined links */
@@ -508,8 +517,15 @@ html.ff-elderly img {
 html.ff-elderly td,
 html.ff-elderly th {
   font-size: 18px !important;
+  line-height: 1.8 !important;
   padding: 10px 12px !important;
   border: 1px solid #999999 !important;
+}
+
+/* List items need breathing room too */
+html.ff-elderly li {
+  line-height: 2.1 !important;
+  margin-bottom: 0.4em !important;
 }
 
 
@@ -1009,4 +1025,167 @@ html.ff-autism p {
 .ff-widget-toast--success {
   background: #F0FDF4;
   color: #166534;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Inline Summary Card  (#ff-summary-card)
+   A quick-click bar prepended to the page body.
+   ═══════════════════════════════════════════════════════════════ */
+
+#ff-summary-card {
+  /* Layout */
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  margin: 0 0 0 0 !important;
+  /* Style */
+  background: linear-gradient(90deg, #EEF2FF 0%, #F5F3FF 100%) !important;
+  border-bottom: 1.5px solid #C7D2FE !important;
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif !important;
+  font-size: 14px !important;
+  position: relative !important;
+  z-index: 2147483640 !important;
+  /* Prevent site styles bleeding in */
+  all: initial;
+  display: block !important;
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif !important;
+  background: linear-gradient(90deg, #EEF2FF 0%, #F5F3FF 100%) !important;
+  border-bottom: 1.5px solid #C7D2FE !important;
+  z-index: 2147483640 !important;
+  position: relative !important;
+}
+
+#ff-card-inner {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 20px !important;
+  max-width: 820px !important;
+  margin: 0 auto !important;
+}
+
+#ff-card-icon {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.25s ease !important;
+}
+
+#ff-summary-card[data-state="loading"] #ff-card-icon {
+  animation: ff-card-spin 1s linear infinite !important;
+  display: inline-block !important;
+}
+
+@keyframes ff-card-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#ff-card-text {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+#ff-card-text strong {
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  color: #312E81 !important;
+  line-height: 1.3 !important;
+}
+
+#ff-card-sub {
+  font-size: 11px !important;
+  color: #6366F1 !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.01em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  transition: color 0.2s !important;
+}
+
+/* Go / Retry / ↑ action button */
+#ff-card-btn {
+  all: unset !important;
+  cursor: pointer !important;
+  background: #4F46E5 !important;
+  color: #fff !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 16px !important;
+  border-radius: 20px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: background 0.15s, transform 0.12s, opacity 0.15s !important;
+  letter-spacing: 0.02em !important;
+}
+
+#ff-card-btn:hover {
+  background: #4338CA !important;
+  transform: scale(1.04) !important;
+}
+
+#ff-card-btn:active {
+  transform: scale(0.97) !important;
+}
+
+#ff-card-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: default !important;
+  transform: none !important;
+}
+
+/* Status row (errors / messages) */
+#ff-card-status {
+  padding: 4px 20px 8px !important;
+  font-size: 11.5px !important;
+  font-family: 'Lexend', 'Inter', system-ui, sans-serif !important;
+  color: #4338CA !important;
+  max-width: 820px !important;
+  margin: 0 auto !important;
+}
+
+#ff-card-status[data-error="true"] {
+  color: #B91C1C !important;
+}
+
+/* State-based colour variants */
+#ff-summary-card[data-state="done"] {
+  background: linear-gradient(90deg, #F0FDF4 0%, #ECFDF5 100%) !important;
+  border-bottom-color: #A7F3D0 !important;
+}
+
+#ff-summary-card[data-state="done"] #ff-card-text strong {
+  color: #065F46 !important;
+}
+
+#ff-summary-card[data-state="done"] #ff-card-sub {
+  color: #059669 !important;
+}
+
+#ff-summary-card[data-state="done"] #ff-card-btn {
+  background: #059669 !important;
+}
+
+#ff-summary-card[data-state="error"] {
+  background: linear-gradient(90deg, #FEF2F2 0%, #FFF1F2 100%) !important;
+  border-bottom-color: #FECACA !important;
+}
+
+#ff-summary-card[data-state="error"] #ff-card-text strong {
+  color: #991B1B !important;
+}
+
+#ff-summary-card[data-state="error"] #ff-card-sub {
+  color: #DC2626 !important;
+}
+
+#ff-summary-card[data-state="error"] #ff-card-btn {
+  background: #DC2626 !important;
 }

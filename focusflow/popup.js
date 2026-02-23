@@ -17,11 +17,9 @@ const optionsBtn = document.getElementById("optionsBtn");
 const openOptionsLink = document.getElementById("openOptionsLink");
 const profileChips = document.querySelectorAll(".profile-chip");
 
-/** @type {{ isActive: boolean, summary: string | null, title: string | null }} */
+/** @type {{ adBlockEnabled: boolean }} */
 let state = {
-    isActive: false,
-    summary: null,
-    title: null
+    adBlockEnabled: false
 };
 
 /**
@@ -37,46 +35,31 @@ let profileState = { adhd: false, dyslexia: false, elderly: false, autism: false
  * @param {boolean} active - Whether focus mode is on.
  * @param {string} [words] - Optional word count string.
  */
-const setStatus = (active, words = null) => {
-    if (active) {
+const setStatus = (enabled) => {
+    if (enabled) {
         statusDot.classList.add("active");
         statusText.classList.add("active");
-        statusText.textContent = "Focus Mode is ON";
+        statusText.textContent = "Ad Block is ON";
     } else {
         statusDot.classList.remove("active");
         statusText.classList.remove("active");
-        statusText.textContent = "Focus Mode is off";
-    }
-
-    if (words) {
-        wordChip.textContent = words;
-        wordChip.classList.add("visible");
+        statusText.textContent = "Ad Block is off";
     }
 };
 
-/**
- * Sets the main button to the "activate" state.
- */
-const setBtnActivate = () => {
+const setBtnEnable = () => {
     mainBtn.className = "btn-primary";
-    mainBtn.querySelector(".btn-label").textContent = "⚡ Simplify This Page";
+    mainBtn.querySelector(".btn-label").textContent = "🛡 Block Ads";
     mainBtn.disabled = false;
 };
 
-/**
- * Sets the main button to the "deactivate" state.
- */
-const setBtnDeactivate = () => {
+const setBtnDisable = () => {
     mainBtn.className = "btn-primary off-state";
-    mainBtn.querySelector(".btn-label").textContent = "✕ Turn Off Focus Mode";
+    mainBtn.querySelector(".btn-label").textContent = "✕ Disable Ad Block";
     mainBtn.disabled = false;
 };
 
-/**
- * Sets the main button into a loading/disabled state.
- * @param {string} [label] - Optional label text (hidden while loading).
- */
-const setBtnLoading = (label = "Simplifying…") => {
+const setBtnLoading = (label = "Applying…") => {
     mainBtn.className = "btn-primary loading";
     mainBtn.querySelector(".btn-label").textContent = label;
     mainBtn.disabled = true;
@@ -145,110 +128,52 @@ const getApiKey = () => {
 // ── Core Flow ─────────────────────────────────────────────────
 
 /**
- * Orchestrates the full "Simplify" flow:
- * 1. Extract content via content.js
- * 2. Call the Hugging Face API via background.js
- * 3. Inject summary into the page via content.js
+ * Enables ad blocking via the background service worker.
  */
-const handleActivate = async () => {
+const handleAdBlockOn = async () => {
     clearMessage();
-    setBtnLoading("Extracting content…");
-
+    setBtnLoading("Enabling Ad Block…");
     try {
-        const tab = await getActiveTab();
-
-        // Step 1: Get API Key
-        const apiKey = await getApiKey();
-        if (!apiKey) {
-            showMessage("error", "🔑", "No API key set. Click 'Set API Key' below to add your Hugging Face key.");
-            setBtnActivate();
-            return;
+        const result = await chrome.runtime.sendMessage({ action: "TOGGLE_AD_BLOCK", enable: true });
+        if (result?.success) {
+            state.adBlockEnabled = true;
+            setStatus(true);
+            setBtnDisable();
+            showMessage("success", "🛡", "Ad Block is ON! Reloading page…");
+            const tab = await getActiveTab();
+            setTimeout(() => chrome.tabs.reload(tab.id), 800);
+        } else {
+            showMessage("error", "❌", result?.error || "Could not enable ad blocking.");
+            setBtnEnable();
         }
-
-        // Step 2: Extract article content from page
-        let extractResult;
-        try {
-            extractResult = await sendToContent(tab.id, { action: "EXTRACT_CONTENT" });
-        } catch {
-            showMessage("error", "⚠️", "Cannot connect to page. Try reloading the tab and opening FocusFlow again.");
-            setBtnActivate();
-            return;
-        }
-
-        if (!extractResult.success) {
-            showMessage("error", "📄", extractResult.error);
-            setBtnActivate();
-            return;
-        }
-
-        const { article, wordCount } = extractResult;
-        const wordLabel = `${wordCount.toLocaleString()} words`;
-
-        // Step 3: Fetch AI summary via background service worker
-        setBtnLoading("AI is summarizing…");
-        showMessage("info", "🤖", `Sending ${wordLabel} to Qwen AI for summarization…`);
-
-        let summaryResult;
-        try {
-            summaryResult = await chrome.runtime.sendMessage({
-                action: "FETCH_SUMMARY",
-                text: article.text,
-                apiKey
-            });
-        } catch (err) {
-            showMessage("error", "🌐", `API communication failed: ${err.message}`);
-            setBtnActivate();
-            return;
-        }
-
-        if (!summaryResult.success) {
-            showMessage("error", "❌", summaryResult.error);
-            setBtnActivate();
-            return;
-        }
-
-        // Step 4: Inject summary banner into page
-        await sendToContent(tab.id, {
-            action: "INJECT_SUMMARY",
-            title: article.title,
-            rawSummary: summaryResult.summary
-        });
-
-        // Update state
-        state.isActive = true;
-        state.summary = summaryResult.summary;
-        state.title = article.title;
-
-        setStatus(true, wordLabel);
-        setBtnDeactivate();
-        clearMessage();
-        showMessage("success", "✅", "Page simplified! Scroll down to read the AI summary.");
-
     } catch (err) {
-        console.error("[FocusFlow Popup]", err);
-        showMessage("error", "❌", `Unexpected error: ${err.message}`);
-        setBtnActivate();
+        showMessage("error", "❌", `Error: ${err.message}`);
+        setBtnEnable();
     }
 };
 
 /**
- * Turns off Focus Mode on the current tab.
+ * Disables ad blocking via the background service worker.
  */
-const handleDeactivate = async () => {
+const handleAdBlockOff = async () => {
     clearMessage();
-    setBtnLoading("Restoring page…");
-
+    setBtnLoading("Disabling Ad Block…");
     try {
-        const tab = await getActiveTab();
-        await sendToContent(tab.id, { action: "DISABLE_FOCUS_MODE" });
-
-        state.isActive = false;
-        setStatus(false);
-        setBtnActivate();
-        showMessage("info", "↩️", "Focus Mode turned off. Original layout restored.");
+        const result = await chrome.runtime.sendMessage({ action: "TOGGLE_AD_BLOCK", enable: false });
+        if (result?.success) {
+            state.adBlockEnabled = false;
+            setStatus(false);
+            setBtnEnable();
+            showMessage("info", "↩️", "Ad Block off. Reloading page…");
+            const tab = await getActiveTab();
+            setTimeout(() => chrome.tabs.reload(tab.id), 800);
+        } else {
+            showMessage("error", "❌", result?.error || "Could not disable ad blocking.");
+            setBtnDisable();
+        }
     } catch (err) {
-        showMessage("error", "❌", `Could not disable Focus Mode: ${err.message}`);
-        setBtnDeactivate();
+        showMessage("error", "❌", `Error: ${err.message}`);
+        setBtnDisable();
     }
 };
 
@@ -320,32 +245,31 @@ const initPopup = async () => {
     try {
         const tab = await getActiveTab();
 
-        // Check focus mode state
-        const response = await sendToContent(tab.id, { action: "CHECK_STATUS" });
-        if (response?.isActive) {
-            state.isActive = true;
+        // Check ad-block state
+        const adStatus = await chrome.runtime.sendMessage({ action: "GET_AD_BLOCK_STATUS" });
+        if (adStatus?.enabled) {
+            state.adBlockEnabled = true;
             setStatus(true);
-            setBtnDeactivate();
+            setBtnDisable();
         } else {
-            setBtnActivate();
+            setBtnEnable();
         }
 
         // Load and render saved accessibility profiles
         await loadProfiles(tab.id);
 
     } catch {
-        // Content script may not be injected yet (e.g. chrome:// pages)
-        setBtnActivate();
-        showMessage("info", "ℹ️", "Navigate to a web article and click Simplify.");
+        setBtnEnable();
+        showMessage("info", "ℹ️", "Navigate to a web page and click Block Ads to enable.");
     }
 };
 
 // ── Event Listeners ───────────────────────────────────────────
 mainBtn.addEventListener("click", () => {
-    if (state.isActive) {
-        handleDeactivate();
+    if (state.adBlockEnabled) {
+        handleAdBlockOff();
     } else {
-        handleActivate();
+        handleAdBlockOn();
     }
 });
 

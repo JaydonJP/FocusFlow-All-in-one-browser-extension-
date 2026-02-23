@@ -857,8 +857,8 @@ const injectFloatingWidget = () => {
                     });
                     btn.classList.remove("ff-panel-item--loading");
                     if (response && response.success) {
-                        const bulletsHtml = parseBulletsToHtml(response.rawSummary);
-                        injectSummaryBanner(articleResult.title, `<ul class="ff-bullet-list">${bulletsHtml}</ul>`);
+                        const summaryHtml = parseBulletsToHtml(response.rawSummary);
+                        injectSummaryBanner(articleResult.title, summaryHtml);
                         enableFocusMode();
                     } else {
                         showWidgetToast(response?.error || "Summary failed. Check your API key in Settings.", "error");
@@ -936,6 +936,130 @@ const showWidgetToast = (message, type = "info") => {
     }, 3500);
 };
 
-// ── Auto-inject on page load ──────────────────────────────────────────────────
-// Delay slightly so the page body exists
-setTimeout(injectFloatingWidget, 500);
+
+
+// (auto-inject is at the bottom of the file, after all const declarations)
+
+
+// ─── Inline Summary Card ──────────────────────────────────────────────────────
+// A small "Summarise this page" card injected into the article body.
+// Provides one-click AI summarisation without opening the extension popup.
+
+const FF_CARD_ID = "ff-summary-card";
+
+/**
+ * Injects the inline summary quick-click card into the page.
+ * Idempotent — skips if already present.
+ */
+const injectSummaryCard = () => {
+    if (document.getElementById(FF_CARD_ID)) return;
+    if (!document.body) return;
+
+    const card = document.createElement("div");
+    card.id = FF_CARD_ID;
+    card.setAttribute("role", "complementary");
+    card.setAttribute("aria-label", "FocusFlow — Summarise this page");
+    card.innerHTML = `
+        <div id="ff-card-inner">
+            <span id="ff-card-icon">✨</span>
+            <div id="ff-card-text">
+                <strong>Summarise this page</strong>
+                <span id="ff-card-sub">AI-powered · FocusFlow</span>
+            </div>
+            <button id="ff-card-btn" aria-label="Generate AI summary">Go</button>
+        </div>
+        <div id="ff-card-status" aria-live="polite" hidden></div>
+    `;
+
+    document.body.prepend(card);
+
+    const btn = card.querySelector("#ff-card-btn");
+    const statusEl = card.querySelector("#ff-card-status");
+    const iconEl = card.querySelector("#ff-card-icon");
+    const subEl = card.querySelector("#ff-card-sub");
+
+    const setCardState = (state) => {
+        card.dataset.state = state;
+    };
+
+    const showCardStatus = (msg, isError = false) => {
+        statusEl.hidden = false;
+        statusEl.textContent = msg;
+        statusEl.dataset.error = isError ? "true" : "false";
+    };
+
+    btn.addEventListener("click", async () => {
+        if (card.dataset.state === "loading") return;
+        setCardState("loading");
+        btn.disabled = true;
+        btn.textContent = "…";
+        iconEl.textContent = "⏳";
+        subEl.textContent = "Extracting article…";
+        statusEl.hidden = true;
+
+        // Step 1: Extract content
+        const articleResult = extractArticleContent();
+        if (articleResult.error) {
+            setCardState("error");
+            iconEl.textContent = "⚠️";
+            subEl.textContent = "Not an article";
+            showCardStatus(articleResult.error, true);
+            btn.textContent = "Retry";
+            btn.disabled = false;
+            return;
+        }
+
+        subEl.textContent = "Asking AI…";
+
+        // Step 2: Send to background for summarisation
+        let result;
+        try {
+            result = await chrome.runtime.sendMessage({
+                action: "SUMMARIZE_FROM_WIDGET",
+                article: { text: articleResult.text, title: articleResult.title }
+            });
+        } catch (err) {
+            setCardState("error");
+            iconEl.textContent = "❌";
+            subEl.textContent = "Failed to reach extension";
+            showCardStatus(err.message, true);
+            btn.textContent = "Retry";
+            btn.disabled = false;
+            return;
+        }
+
+        if (!result?.success) {
+            setCardState("error");
+            iconEl.textContent = "❌";
+            subEl.textContent = result?.error || "Summarisation failed";
+            showCardStatus(result?.error || "Unknown error", true);
+            btn.textContent = "Retry";
+            btn.disabled = false;
+            return;
+        }
+
+        // Step 3: Inject the summary banner into the page
+        const html = parseBulletsToHtml(result.rawSummary);
+        injectSummaryBanner(articleResult.title, html);
+
+        // Step 4: Collapse the card
+        setCardState("done");
+        iconEl.textContent = "✅";
+        subEl.textContent = "Summary ready — scroll up";
+        btn.textContent = "↑";
+        btn.disabled = false;
+        btn.title = "Scroll to summary";
+        btn.addEventListener("click", () => {
+            const banner = document.getElementById(SUMMARY_BANNER_ID);
+            if (banner) banner.scrollIntoView({ behavior: "smooth" });
+        }, { once: true });
+    });
+};
+
+// ── Auto-inject on page load ─────────────────────────────────────────────────
+// Must be at the END so all const functions above are defined before the
+// setTimeout callback fires (const is NOT hoisted like function declarations).
+setTimeout(() => {
+    injectFloatingWidget();
+    injectSummaryCard();
+}, 500);
