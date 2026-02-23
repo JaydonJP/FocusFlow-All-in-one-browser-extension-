@@ -1,12 +1,6 @@
-/**
- * FocusFlow - popup.js
- * Controls the popup UI state machine.
- * Communicates with content.js via chrome.tabs.sendMessage
- * and reads the API key from chrome.storage.sync.
- */
-
 // ── DOM References ────────────────────────────────────────────
 const mainBtn = document.getElementById("mainBtn");
+const summarizeBtn = document.getElementById("summarizeBtn");
 const statusDot = document.getElementById("statusDot");
 const statusText = document.getElementById("statusText");
 const wordChip = document.getElementById("wordChip");
@@ -16,9 +10,11 @@ const messageTextEl = document.getElementById("messageText");
 const optionsBtn = document.getElementById("optionsBtn");
 const openOptionsLink = document.getElementById("openOptionsLink");
 const profileChips = document.querySelectorAll(".profile-chip");
+const adBlockToggle = document.getElementById("adBlockToggle");
 
-/** @type {{ adBlockEnabled: boolean }} */
+/** @type {{ isActive: boolean, adBlockEnabled: boolean }} */
 let state = {
+    isActive: false,
     adBlockEnabled: false
 };
 
@@ -35,34 +31,65 @@ let profileState = { adhd: false, dyslexia: false, elderly: false, autism: false
  * @param {boolean} active - Whether focus mode is on.
  * @param {string} [words] - Optional word count string.
  */
-const setStatus = (enabled) => {
-    if (enabled) {
+const setStatus = (active, words = null) => {
+    if (active) {
         statusDot.classList.add("active");
         statusText.classList.add("active");
-        statusText.textContent = "Ad Block is ON";
+        statusText.textContent = "Focus Mode is ON";
     } else {
         statusDot.classList.remove("active");
         statusText.classList.remove("active");
-        statusText.textContent = "Ad Block is off";
+        statusText.textContent = "Focus Mode is off";
+    }
+
+    if (words) {
+        wordChip.textContent = words;
+        wordChip.classList.add("visible");
+    } else {
+        wordChip.classList.remove("visible");
     }
 };
 
-const setBtnEnable = () => {
+/**
+ * Sets the main button to the "activate" state.
+ */
+const setBtnActivate = () => {
     mainBtn.className = "btn-primary";
-    mainBtn.querySelector(".btn-label").textContent = "🛡 Block Ads";
+    mainBtn.querySelector(".btn-label").textContent = "✨ Simplify";
     mainBtn.disabled = false;
 };
 
-const setBtnDisable = () => {
+/**
+ * Sets the main button to the "deactivate" state.
+ */
+const setBtnDeactivate = () => {
     mainBtn.className = "btn-primary off-state";
-    mainBtn.querySelector(".btn-label").textContent = "✕ Disable Ad Block";
+    mainBtn.querySelector(".btn-label").textContent = "✕ Turn Off Focus Mode";
     mainBtn.disabled = false;
 };
 
+/**
+ * Sets the main button into a loading/disabled state.
+ * @param {string} [label] - Optional label text (hidden while loading).
+ */
 const setBtnLoading = (label = "Applying…") => {
     mainBtn.className = "btn-primary loading";
     mainBtn.querySelector(".btn-label").textContent = label;
     mainBtn.disabled = true;
+};
+
+/**
+ * Sets the summarize button into a loading state.
+ */
+const setSummarizeBtnLoading = (loading, label = "🪷 Summarize with AI") => {
+    if (loading) {
+        summarizeBtn.className = "btn-secondary loading";
+        summarizeBtn.disabled = true;
+    } else {
+        summarizeBtn.className = "btn-secondary";
+        summarizeBtn.querySelector(".btn-label").textContent = label;
+        summarizeBtn.disabled = false;
+    }
 };
 
 /**
@@ -128,52 +155,173 @@ const getApiKey = () => {
 // ── Core Flow ─────────────────────────────────────────────────
 
 /**
- * Enables ad blocking via the background service worker.
+ * "Find Your Flow" — applies ONLY the CSS focus-mode overlay.
+ * Does NOT call the AI.
  */
-const handleAdBlockOn = async () => {
+const handleActivate = async () => {
     clearMessage();
-    setBtnLoading("Enabling Ad Block…");
+    setBtnLoading("Applying Focus Mode…");
+
     try {
-        const result = await chrome.runtime.sendMessage({ action: "TOGGLE_AD_BLOCK", enable: true });
-        if (result?.success) {
-            state.adBlockEnabled = true;
-            setStatus(true);
-            setBtnDisable();
-            showMessage("success", "🛡", "Ad Block is ON! Reloading page…");
-            const tab = await getActiveTab();
-            setTimeout(() => chrome.tabs.reload(tab.id), 800);
-        } else {
-            showMessage("error", "❌", result?.error || "Could not enable ad blocking.");
-            setBtnEnable();
+        const tab = await getActiveTab();
+
+        // Enable CSS Focus Mode on the page
+        let result;
+        try {
+            result = await sendToContent(tab.id, { action: "ENABLE_FOCUS_MODE" });
+        } catch {
+            showMessage("error", "⚠️", "Cannot connect to page. Try reloading the tab and opening FocusFlow again.");
+            setBtnActivate();
+            return;
         }
+
+        state.isActive = true;
+        setStatus(true);
+        setBtnDeactivate();
+        showMessage("success", "✅", "Focus Mode is active. Hit 'Summarize with AI' to get an AI summary.");
+
     } catch (err) {
-        showMessage("error", "❌", `Error: ${err.message}`);
-        setBtnEnable();
+        console.error("[FocusFlow Popup]", err);
+        showMessage("error", "❌", `Unexpected error: ${err.message}`);
+        setBtnActivate();
     }
 };
 
 /**
- * Disables ad blocking via the background service worker.
+ * Turns off Focus Mode on the current tab.
  */
-const handleAdBlockOff = async () => {
+const handleDeactivate = async () => {
     clearMessage();
-    setBtnLoading("Disabling Ad Block…");
+    setBtnLoading("Restoring page…");
+
     try {
-        const result = await chrome.runtime.sendMessage({ action: "TOGGLE_AD_BLOCK", enable: false });
+        const tab = await getActiveTab();
+        await sendToContent(tab.id, { action: "DISABLE_FOCUS_MODE" });
+
+        state.isActive = false;
+        setStatus(false);
+        setBtnActivate();
+        showMessage("info", "↩️", "Focus Mode turned off. Original layout restored.");
+    } catch (err) {
+        showMessage("error", "❌", `Could not disable Focus Mode: ${err.message}`);
+        setBtnDeactivate();
+    }
+};
+
+/**
+ * "Summarize with AI" — extracts page content and calls Qwen via the background worker.
+ * Can run independently of Focus Mode being on/off.
+ */
+const handleSummarize = async () => {
+    clearMessage();
+    setSummarizeBtnLoading(true);
+    mainBtn.disabled = true;
+
+    try {
+        const tab = await getActiveTab();
+
+        // Step 1: Get API Key
+        const apiKey = await getApiKey();
+        if (!apiKey) {
+            showMessage("error", "🔑", "No API key set. Click 'Set API Key' below to add your Hugging Face key.");
+            setSummarizeBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        // Step 2: Extract article content from the page
+        showMessage("info", "📄", "Extracting article content from this page…");
+        let extractResult;
+        try {
+            extractResult = await sendToContent(tab.id, { action: "EXTRACT_CONTENT" });
+        } catch {
+            showMessage("error", "⚠️", "Cannot connect to page. Try reloading the tab and opening FocusFlow again.");
+            setSummarizeBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        if (!extractResult.success) {
+            showMessage("error", "📄", extractResult.error);
+            setSummarizeBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        const { article, wordCount } = extractResult;
+        const wordLabel = `${wordCount.toLocaleString()} words`;
+
+        // Step 3: Fetch AI summary via background service worker
+        showMessage("info", "🤖", `Sending ${wordLabel} to AI for summarization — this may take a moment…`);
+
+        let summaryResult;
+        try {
+            summaryResult = await chrome.runtime.sendMessage({
+                action: "FETCH_SUMMARY",
+                text: article.text,
+                apiKey
+            });
+        } catch (err) {
+            showMessage("error", "🌐", `API communication failed: ${err.message}`);
+            setSummarizeBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        if (!summaryResult.success) {
+            showMessage("error", "❌", summaryResult.error);
+            setSummarizeBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        // Step 4: Inject the summary banner and enable Focus Mode (if not already on)
+        await sendToContent(tab.id, {
+            action: "INJECT_SUMMARY",
+            title: article.title,
+            rawSummary: summaryResult.summary
+        });
+
+        // If focus mode wasn't on, turn it on now so the page is in reading mode
+        if (!state.isActive) {
+            await sendToContent(tab.id, { action: "ENABLE_FOCUS_MODE" });
+            state.isActive = true;
+            setStatus(true, wordLabel);
+            setBtnDeactivate();
+        } else {
+            setStatus(true, wordLabel);
+        }
+
+        setSummarizeBtnLoading(false, "🔄 Re-Summarize");
+        mainBtn.disabled = false;
+        showMessage("success", "✅", `Done! Summary ready above — ${wordLabel} processed.`);
+
+    } catch (err) {
+        console.error("[FocusFlow Popup]", err);
+        showMessage("error", "❌", `Unexpected error: ${err.message}`);
+        setSummarizeBtnLoading(false);
+        mainBtn.disabled = false;
+    }
+};
+
+/**
+ * Toggles ad blocking via the background service worker.
+ */
+const handleAdBlockToggle = async (enable) => {
+    try {
+        const result = await chrome.runtime.sendMessage({ action: "TOGGLE_AD_BLOCK", enable });
         if (result?.success) {
-            state.adBlockEnabled = false;
-            setStatus(false);
-            setBtnEnable();
-            showMessage("info", "↩️", "Ad Block off. Reloading page…");
+            state.adBlockEnabled = enable;
+            showMessage("success", "🛡", `Ad Block is ${enable ? "ON" : "OFF"}! Reloading page…`);
             const tab = await getActiveTab();
             setTimeout(() => chrome.tabs.reload(tab.id), 800);
         } else {
-            showMessage("error", "❌", result?.error || "Could not disable ad blocking.");
-            setBtnDisable();
+            showMessage("error", "❌", result?.error || "Could not toggle ad blocking.");
+            adBlockToggle.checked = !enable;
         }
     } catch (err) {
         showMessage("error", "❌", `Error: ${err.message}`);
-        setBtnDisable();
+        adBlockToggle.checked = !enable;
     }
 };
 
@@ -194,8 +342,7 @@ const syncChipUI = (profiles) => {
 
 /**
  * Loads saved profile state from chrome.storage.sync and syncs the chip UI.
- * @param {number} tabId - Active tab ID to query current DOM state from,
- *   used as a fallback if storage is empty.
+ * @param {number} tabId - Active tab ID to query current DOM state from.
  */
 const loadProfiles = async (tabId) => {
     return new Promise((resolve) => {
@@ -203,7 +350,6 @@ const loadProfiles = async (tabId) => {
             if (result.ffProfiles) {
                 profileState = result.ffProfiles;
             } else {
-                // Fallback: read from live DOM (already applied by content.js init)
                 try {
                     const res = await sendToContent(tabId, { action: "GET_PROFILES" });
                     if (res?.profiles) profileState = res.profiles;
@@ -216,22 +362,19 @@ const loadProfiles = async (tabId) => {
 };
 
 /**
- * Handles a profile chip toggle: flips the named profile, sends the
- * full updated state to content.js, and persists to storage.
+ * Handles a profile chip toggle.
  * @param {string} profileKey - One of: adhd | dyslexia | elderly | autism
  * @param {number} tabId - Active tab ID.
  */
 const handleProfileToggle = async (profileKey, tabId) => {
-    // Flip the targeted profile key
     profileState[profileKey] = !profileState[profileKey];
     syncChipUI(profileState);
 
     try {
         await sendToContent(tabId, { action: "SET_PROFILES", profiles: { ...profileState } });
+        chrome.storage.sync.set({ ffProfiles: profileState });
     } catch (err) {
-        // Page may be restricted (e.g. chrome:// pages) — show brief warning
         showMessage("error", "⚠️", "Cannot apply profile on this page. Try a regular website.");
-        // Revert the toggle
         profileState[profileKey] = !profileState[profileKey];
         syncChipUI(profileState);
     }
@@ -245,32 +388,46 @@ const initPopup = async () => {
     try {
         const tab = await getActiveTab();
 
-        // Check ad-block state
-        const adStatus = await chrome.runtime.sendMessage({ action: "GET_AD_BLOCK_STATUS" });
-        if (adStatus?.enabled) {
-            state.adBlockEnabled = true;
+        // Check Focus Mode state
+        const response = await sendToContent(tab.id, { action: "CHECK_STATUS" });
+        if (response?.isActive) {
+            state.isActive = true;
             setStatus(true);
-            setBtnDisable();
+            setBtnDeactivate();
         } else {
-            setBtnEnable();
+            setBtnActivate();
         }
+
+        // Check Ad Block state
+        const adStatus = await chrome.runtime.sendMessage({ action: "GET_AD_BLOCK_STATUS" });
+        state.adBlockEnabled = !!adStatus?.enabled;
+        if (adBlockToggle) adBlockToggle.checked = state.adBlockEnabled;
 
         // Load and render saved accessibility profiles
         await loadProfiles(tab.id);
 
     } catch {
-        setBtnEnable();
-        showMessage("info", "ℹ️", "Navigate to a web page and click Block Ads to enable.");
+        // Content script may not be injected yet
+        setBtnActivate();
+        showMessage("info", "ℹ️", "Navigate to a web article and click 'Simplify'.");
     }
 };
 
 // ── Event Listeners ───────────────────────────────────────────
 mainBtn.addEventListener("click", () => {
-    if (state.adBlockEnabled) {
-        handleAdBlockOff();
+    if (state.isActive) {
+        handleDeactivate();
     } else {
-        handleAdBlockOn();
+        handleActivate();
     }
+});
+
+summarizeBtn.addEventListener("click", () => {
+    handleSummarize();
+});
+
+adBlockToggle.addEventListener("change", (e) => {
+    handleAdBlockToggle(e.target.checked);
 });
 
 optionsBtn.addEventListener("click", () => {
@@ -281,10 +438,6 @@ openOptionsLink.addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
 });
 
-/**
- * Wire up each accessibility profile chip to its toggle handler.
- * Chips are queried once at startup to avoid repeated DOM lookups.
- */
 profileChips.forEach((chip) => {
     chip.addEventListener("click", async () => {
         const tab = await getActiveTab();
@@ -294,4 +447,3 @@ profileChips.forEach((chip) => {
 
 // Boot
 initPopup();
-

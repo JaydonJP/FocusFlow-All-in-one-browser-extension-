@@ -409,15 +409,113 @@ const readActiveProfiles = () => {
     );
 };
 
+// ─── Ad-Block Cosmetic Filtering ─────────────────────────────────────────────
+// Collapses empty ad placeholder boxes left behind by declarativeNetRequest.
+// Strategy: CSS handles known ad attributes/classes + src-based iframe selectors.
+//           JS sweeps same-origin iframes that ended up blank after blocking.
+
+/**
+ * Stamps `ff-adblock-active` on <html> (triggers CSS rules) and sets up a
+ * MutationObserver to collapse newly added empty iframes.
+ */
+const applyAdBlockCosmeticFiltering = () => {
+    document.documentElement.classList.add("ff-adblock-active");
+
+    /**
+     * Collapse same-origin iframes whose body is empty (ad was blocked so
+     * the iframe loaded but has no content).
+     */
+    const collapseEmptyIframes = () => {
+        document.querySelectorAll("iframe").forEach((iframe) => {
+            if (iframe.id && iframe.id.startsWith("ff-")) return; // skip our own
+            try {
+                const doc = iframe.contentDocument;
+                if (doc && doc.body && doc.body.innerHTML.trim() === "") {
+                    iframe.style.setProperty("display", "none", "important");
+                    iframe.style.setProperty("height", "0", "important");
+                    // Collapse wrapper only if it exists purely to hold the ad
+                    const p = iframe.parentElement;
+                    if (p && p.children.length === 1) {
+                        p.style.setProperty("height", "0", "important");
+                        p.style.setProperty("overflow", "hidden", "important");
+                        p.style.setProperty("min-height", "0", "important");
+                        p.style.setProperty("margin", "0", "important");
+                        p.style.setProperty("padding", "0", "important");
+                    }
+                }
+            } catch (_) {
+                // Cross-origin iframes — handled by CSS src-attribute selectors
+            }
+        });
+    };
+
+    // Run once after page has settled
+    setTimeout(collapseEmptyIframes, 2000);
+
+    // Guard against double-registering on SPA navigations
+    if (window._ffAdObserver) return;
+    window._ffAdObserver = new MutationObserver((mutations) => {
+        const hasNewIframe = mutations.some((m) =>
+            [...m.addedNodes].some(
+                (n) => n.nodeName === "IFRAME" ||
+                    (n.querySelectorAll && n.querySelectorAll("iframe").length > 0)
+            )
+        );
+        if (hasNewIframe) setTimeout(collapseEmptyIframes, 600);
+    });
+    window._ffAdObserver.observe(document.documentElement, {
+        childList: true,
+        subtree: true
+    });
+
+    // ── Popup blocker: patch window.open ─────────────────────────────────────
+    // Block new-window/tab calls whose URL resolves to a known ad/tracker domain.
+    // All other window.open calls (share dialogs, OAuth, video players, etc.) pass through.
+    if (!window._ffOpenPatched) {
+        window._ffOpenPatched = true;
+        const _AD_POPUP_DOMAINS = [
+            "doubleclick.net", "googlesyndication.com", "googleadservices.com",
+            "adnxs.com", "amazon-adsystem.com", "taboola.com", "outbrain.com",
+            "criteo.com", "criteo.net", "moatads.com", "rubiconproject.com",
+            "pubmatic.com", "openx.net", "adsrvr.org", "thetradedesk.com",
+            "adroll.com", "sharethrough.com", "media.net", "propellerads.com",
+            "adsterra.com", "mgid.com", "exoclick.com", "adform.net",
+            "zedo.com", "adblade.com", "revcontent.com", "triplelift.com",
+            "advertising.com", "spotxchange.com", "smartadserver.com",
+            "quantserve.com", "casalemedia.com", "conversantmedia.com",
+            "tradedoubler.com", "clickbooth.com", "buysellads.com",
+            "trafficjunky.net", "juicyads.com", "adtarget.me",
+            "popcash.net", "popads.net", "hilltopads.net",
+        ];
+        const _origOpen = window.open.bind(window);
+        window.open = function (url, target, features) {
+            if (url) {
+                try {
+                    const hostname = new URL(url, location.href).hostname.toLowerCase();
+                    if (_AD_POPUP_DOMAINS.some((d) => hostname === d || hostname.endsWith("." + d))) {
+                        console.log("[FocusFlow] Popup blocked:", url);
+                        return null;
+                    }
+                } catch (_) { /* malformed URL — let the browser handle it */ }
+            }
+            return _origOpen.call(this, url, target, features);
+        };
+    }
+};
+
+
 // ─── Auto-Apply on Page Load ──────────────────────────────────────────────────
 // When a new page loads the content script re-runs, so we restore
 // the user's saved profiles from storage immediately.
 
 (() => {
     try {
-        chrome.storage.sync.get(["ffProfiles"], (result) => {
+        chrome.storage.sync.get(["ffProfiles", "ffAdBlockEnabled"], (result) => {
             if (result.ffProfiles) {
                 applyProfiles(result.ffProfiles);
+            }
+            if (result.ffAdBlockEnabled) {
+                applyAdBlockCosmeticFiltering();
             }
         });
     } catch (err) {
@@ -425,6 +523,7 @@ const readActiveProfiles = () => {
         console.warn("[FocusFlow] Could not restore profiles:", err.message);
     }
 })();
+
 
 // ─── Message Listener ────────────────────────────────────────────────────────
 // Listens for commands from popup.js via chrome.runtime messaging.
@@ -459,6 +558,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             console.error("[FocusFlow] Summary injection failed:", err);
             sendResponse({ success: false, error: err.message });
         }
+        return true;
+    }
+
+    if (action === "ENABLE_FOCUS_MODE") {
+        enableFocusMode();
+        sendResponse({ success: true });
         return true;
     }
 
@@ -597,18 +702,22 @@ const injectFloatingWidget = () => {
     const focusActive = isFocusModeActive();
 
     panel.innerHTML = `
-      <div class="ff-panel-header">
-        <span class="ff-panel-logo">⚡ FocusFlow</span>
+      <div class="ff-floating-panel-header">
+        <span class="ff-panel-logo">🪷 FocusFlow</span>
         <button class="ff-panel-close" aria-label="Close menu" title="Close">✕</button>
       </div>
       <div class="ff-panel-section-label">Focus</div>
-      <button class="ff-panel-item${focusActive ? " ff-panel-item--active" : ""}" data-action="TOGGLE_FOCUS" title="AI-powered reading simplification">
+      <button class="ff-panel-item${focusActive ? " ff-panel-item--active" : ""}" data-action="TOGGLE_FOCUS" title="Apply a clean reading overlay — CSS only, no AI">
         <span class="ff-pi-icon">🎯</span>
         <span class="ff-pi-text">
           <span class="ff-pi-name">Focus Mode</span>
-          <span class="ff-pi-desc">Simplify &amp; summarise page</span>
+          <span class="ff-pi-desc">Clean reading overlay</span>
         </span>
         <span class="ff-pi-dot${focusActive ? " ff-pi-dot--on" : ""}"></span>
+      </button>
+      <button class="ff-panel-item" data-action="SUMMARIZE_PAGE" title="AI-powered summarization — reads the article with Qwen">
+        <span class="ff-pi-icon">🪷</span>
+        <span class="ff-pi-text"><span class="ff-pi-name">Summarize with AI</span><span class="ff-pi-desc">Qwen reads the article</span></span>
       </button>
       <div class="ff-panel-section-label">Accessibility</div>
       <button class="ff-panel-item${activeProfiles.adhd ? " ff-panel-item--active ff-panel-item--adhd" : ""}" data-action="TOGGLE_PROFILE" data-profile="adhd"     title="Reduce distractions &amp; animations">
@@ -630,6 +739,11 @@ const injectFloatingWidget = () => {
         <span class="ff-pi-icon">🤫</span>
         <span class="ff-pi-text"><span class="ff-pi-name">Autism</span><span class="ff-pi-desc">No motion or noise</span></span>
         <span class="ff-pi-dot${activeProfiles.autism ? " ff-pi-dot--on" : ""}"></span>
+      </button>
+      <div class="ff-panel-section-label">General</div>
+      <button class="ff-panel-item" data-action="SHOW_SUMMARY_CARD" title="Restore the summary card if you dismissed it">
+        <span class="ff-pi-icon">📋</span>
+        <span class="ff-pi-text"><span class="ff-pi-name">Show Summary Card</span><span class="ff-pi-desc">Restore inline card</span></span>
       </button>
       <div class="ff-panel-footer">Drag to centre to dismiss</div>
     `;
@@ -837,36 +951,52 @@ const injectFloatingWidget = () => {
         const action = btn.dataset.action;
         const profile = btn.dataset.profile;
 
+        if (action === "SHOW_SUMMARY_CARD") {
+            injectSummaryCard();
+            setPanel(false);
+            const card = document.getElementById(FF_CARD_ID);
+            if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
         if (action === "TOGGLE_FOCUS") {
             if (isFocusModeActive()) {
                 disableFocusMode();
                 removeSummaryBanner();
             } else {
-                // Attempt extraction + summarisation via the background script
-                btn.classList.add("ff-panel-item--loading");
-                const articleResult = extractArticleContent();
-                if (articleResult.error) {
-                    btn.classList.remove("ff-panel-item--loading");
-                    showWidgetToast(articleResult.error, "error");
-                    return;
+                // CSS-only: just apply the focus mode overlay
+                enableFocusMode();
+            }
+            refreshPanelState();
+        }
+
+        if (action === "SUMMARIZE_PAGE") {
+            // AI summarization — separate action from toggling Focus Mode
+            btn.classList.add("ff-panel-item--loading");
+            showWidgetToast("Extracting article…", "info");
+            const articleResult = extractArticleContent();
+            if (articleResult.error) {
+                btn.classList.remove("ff-panel-item--loading");
+                showWidgetToast(articleResult.error, "error");
+                return;
+            }
+            showWidgetToast(`Sending ${articleResult.text.split(/\s+/).length.toLocaleString()} words to AI…`, "info");
+            try {
+                const response = await chrome.runtime.sendMessage({
+                    action: "SUMMARIZE_FROM_WIDGET",
+                    article: articleResult
+                });
+                btn.classList.remove("ff-panel-item--loading");
+                if (response && response.success) {
+                    const summaryHtml = parseBulletsToHtml(response.rawSummary);
+                    injectSummaryBanner(articleResult.title, summaryHtml);
+                    if (!isFocusModeActive()) enableFocusMode();
+                    showWidgetToast("Summary ready!", "success");
+                } else {
+                    showWidgetToast(response?.error || "Summary failed. Check your API key in Settings.", "error");
                 }
-                try {
-                    const response = await chrome.runtime.sendMessage({
-                        action: "SUMMARIZE_FROM_WIDGET",
-                        article: articleResult
-                    });
-                    btn.classList.remove("ff-panel-item--loading");
-                    if (response && response.success) {
-                        const summaryHtml = parseBulletsToHtml(response.rawSummary);
-                        injectSummaryBanner(articleResult.title, summaryHtml);
-                        enableFocusMode();
-                    } else {
-                        showWidgetToast(response?.error || "Summary failed. Check your API key in Settings.", "error");
-                    }
-                } catch (err) {
-                    btn.classList.remove("ff-panel-item--loading");
-                    showWidgetToast("Could not reach background worker.", "error");
-                }
+            } catch (err) {
+                btn.classList.remove("ff-panel-item--loading");
+                showWidgetToast("Could not reach background worker.", "error");
             }
             refreshPanelState();
         }
@@ -961,12 +1091,13 @@ const injectSummaryCard = () => {
     card.setAttribute("aria-label", "FocusFlow — Summarise this page");
     card.innerHTML = `
         <div id="ff-card-inner">
-            <span id="ff-card-icon">✨</span>
+            <span id="ff-card-icon">🪷</span>
             <div id="ff-card-text">
-                <strong>Summarise this page</strong>
-                <span id="ff-card-sub">AI-powered · FocusFlow</span>
+                <strong>Find Your Flow</strong>
+                <span id="ff-card-sub">Zen Summarisation · FocusFlow</span>
             </div>
             <button id="ff-card-btn" aria-label="Generate AI summary">Go</button>
+            <button id="ff-card-close" aria-label="Dismiss summary card" title="Dismiss">✕</button>
         </div>
         <div id="ff-card-status" aria-live="polite" hidden></div>
     `;
@@ -974,9 +1105,15 @@ const injectSummaryCard = () => {
     document.body.prepend(card);
 
     const btn = card.querySelector("#ff-card-btn");
+    const closeBtn = card.querySelector("#ff-card-close");
     const statusEl = card.querySelector("#ff-card-status");
     const iconEl = card.querySelector("#ff-card-icon");
     const subEl = card.querySelector("#ff-card-sub");
+
+    closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        card.remove();
+    });
 
     const setCardState = (state) => {
         card.dataset.state = state;

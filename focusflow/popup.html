@@ -18,20 +18,20 @@
     }
 
     :root {
-      --accent: #5A67D8;
-      --accent-hover: #4C51BF;
-      --accent-light: #EBF4FF;
-      --bg: #FAFAFA;
+      --accent: #2C7A7B;
+      --accent-hover: #285E61;
+      --accent-light: #E6FFFA;
+      --bg: #F7FAFC;
       --surface: #FFFFFF;
-      --text: #1A1A2E;
-      --muted: #6B7280;
+      --text: #2D3748;
+      --muted: #718096;
       --border: #E2E8F0;
-      --success: #10B981;
-      --error: #EF4444;
-      --warning: #F59E0B;
+      --success: #38B2AC;
+      --error: #E53E3E;
+      --warning: #DD6B20;
       --font: 'Lexend', system-ui, sans-serif;
-      --radius: 10px;
-      --shadow: 0 4px 20px rgba(90, 103, 216, 0.12);
+      --radius: 12px;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     }
 
     body {
@@ -47,58 +47,70 @@
 
     /* ── Header ── */
     .header {
-      background: linear-gradient(135deg, #5A67D8, #667EEA);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       padding: 16px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .brand-icon {
-      width: 30px;
-      height: 30px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      background: var(--accent-light);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 18px;
+      color: var(--accent);
     }
 
     .brand-text {
-      color: white;
+      color: var(--text);
       font-size: 16px;
       font-weight: 600;
       letter-spacing: -0.01em;
     }
 
     .brand-tagline {
-      color: rgba(255, 255, 255, 0.75);
+      color: var(--muted);
       font-size: 10px;
-      font-weight: 300;
-      letter-spacing: 0.06em;
+      font-weight: 400;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
     }
 
     .options-btn {
-      background: rgba(255, 255, 255, 0.15);
-      border: none;
-      border-radius: 6px;
-      color: white;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
       cursor: pointer;
-      font-size: 14px;
-      padding: 6px 8px;
-      transition: background 0.2s;
+      font-size: 16px;
+      padding: 6px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .options-btn:hover {
-      background: rgba(255, 255, 255, 0.25);
+      background: var(--accent-light);
+      color: var(--accent);
+      border-color: var(--accent);
     }
 
     /* ── Main Body ── */
@@ -162,27 +174,26 @@
     /* Primary action button */
     .btn-primary {
       width: 100%;
-      padding: 13px;
+      padding: 14px;
       background: var(--accent);
       color: white;
       border: none;
       border-radius: var(--radius);
       font-family: var(--font);
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 4px 14px rgba(90, 103, 216, 0.35);
-      letter-spacing: 0.01em;
+      gap: 10px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(44, 122, 123, 0.2);
     }
 
     .btn-primary:hover:not(:disabled) {
       background: var(--accent-hover);
-      box-shadow: 0 6px 18px rgba(90, 103, 216, 0.45);
+      box-shadow: 0 6px 16px rgba(44, 122, 123, 0.3);
       transform: translateY(-1px);
     }
 
@@ -191,31 +202,69 @@
     }
 
     .btn-primary:disabled {
-      opacity: 0.65;
+      opacity: 0.5;
       cursor: not-allowed;
       transform: none;
     }
 
     .btn-primary.off-state {
-      background: #fff;
+      background: var(--surface);
       color: var(--accent);
-      border: 2px solid var(--accent);
+      border: 1.5px solid var(--accent);
       box-shadow: none;
     }
 
     .btn-primary.off-state:hover:not(:disabled) {
       background: var(--accent-light);
-      box-shadow: none;
+    }
+
+    /* Secondary action button (AI Summarize) */
+    .btn-secondary {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--accent-light);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary.loading .spinner {
+      display: block;
+      border-color: rgba(44, 122, 123, 0.3);
+      border-top-color: var(--accent);
+    }
+
+    .btn-secondary.loading .btn-label {
+      display: none;
     }
 
     /* Spinner */
     .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.4);
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
       border-top-color: white;
       border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      animation: spin 0.8s linear infinite;
       display: none;
     }
 
@@ -439,6 +488,76 @@
       background: var(--border);
       margin: 4px 20px 14px;
     }
+
+    /* ── Switch Toggle (Ad Block) ── */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+    }
+
+    .switch-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border);
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    input:checked+.slider {
+      background-color: var(--success);
+    }
+
+    input:focus+.slider {
+      box-shadow: 0 0 1px var(--success);
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(20px);
+    }
   </style>
 </head>
 
@@ -446,10 +565,10 @@
   <!-- Header -->
   <div class="header">
     <div class="brand">
-      <div class="brand-icon">⚡</div>
+      <div class="brand-icon">🪷</div>
       <div>
         <div class="brand-text">FocusFlow</div>
-        <div class="brand-tagline">ADHD-Friendly Reader</div>
+        <div class="brand-tagline">Your Zen Space</div>
       </div>
     </div>
     <button class="options-btn" id="optionsBtn" title="Settings" aria-label="Open Settings">⚙</button>
@@ -464,10 +583,28 @@
       <span class="word-chip" id="wordChip"></span>
     </div>
 
+    <!-- Ad Block Toggle -->
+    <div class="switch-container">
+      <div class="switch-label">
+        <span class="chip-icon">🛡</span>
+        <span>Block Ads</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="adBlockToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+
     <!-- Main action button -->
-    <button class="btn-primary" id="mainBtn" aria-label="Simplify this page">
+    <button class="btn-primary" id="mainBtn" aria-label="Apply Focus Mode">
       <span class="spinner" aria-hidden="true"></span>
-      <span class="btn-label">⚡ Simplify This Page</span>
+      <span class="btn-label">✨ Simplify</span>
+    </button>
+
+    <!-- Summarize button -->
+    <button class="btn-secondary" id="summarizeBtn" aria-label="Summarize with AI">
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="btn-label">🪷 Summarize with AI</span>
     </button>
 
     <!-- Message area -->

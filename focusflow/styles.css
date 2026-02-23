@@ -10,19 +10,19 @@
 
 /* ── Variables ──────────────────────────────────────────────── */
 :root {
-  --ff-bg: #FAFAFA;
+  --ff-bg: #F7FAFC;
   --ff-surface: #FFFFFF;
-  --ff-text-primary: #1A1A2E;
+  --ff-text-primary: #2D3748;
   --ff-text-secondary: #4A5568;
-  --ff-accent: #5A67D8;
-  --ff-accent-light: #EBF4FF;
+  --ff-accent: #2C7A7B;
+  --ff-accent-light: #E6FFFA;
   --ff-border: #E2E8F0;
-  --ff-bullet-marker: #5A67D8;
+  --ff-bullet-marker: #2C7A7B;
   --ff-max-width: 800px;
-  --ff-line-height: 1.7;
+  --ff-line-height: 1.8;
   --ff-font: 'Lexend', 'Inter', system-ui, -apple-system, sans-serif;
-  --ff-radius: 12px;
-  --ff-shadow: 0 4px 24px rgba(90, 103, 216, 0.08);
+  --ff-radius: 16px;
+  --ff-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
 }
 
 /* ── Global Page Reset (Focus Mode only) ────────────────────── */
@@ -37,11 +37,47 @@ html.focusflow-active body {
   text-rendering: optimizeLegibility !important;
 }
 
-/* ── Hide ONLY unambiguous ad/spam elements ─────────────────── */
-/* IMPORTANT: We do NOT hide nav, header, aside, footer, or class
-   substrings like "banner"/"sidebar"/"widget" — those broad rules
-   wiped out the entire Wikipedia page. Only target provably-ad
-   elements with very specific attribute selectors.              */
+/* ── Simplify Mode: Hide page chrome (nav / sidebars / footer) ── */
+/* Uses semantic HTML5 tags and exact ID selectors — safe for Wikipedia,
+   news sites, and most article-based pages.
+   We target the structural shell, not the content. */
+html.focusflow-active nav,
+html.focusflow-active footer,
+html.focusflow-active aside,
+html.focusflow-active [role="navigation"],
+html.focusflow-active [role="complementary"],
+html.focusflow-active [role="contentinfo"],
+html.focusflow-active [id="nav"],
+html.focusflow-active [id="navbar"],
+html.focusflow-active [id="navigation"],
+html.focusflow-active [id="sidebar"],
+html.focusflow-active [id="sidebar-wrapper"],
+html.focusflow-active [id="left-sidebar"],
+html.focusflow-active [id="right-sidebar"],
+html.focusflow-active [id="footer"],
+html.focusflow-active [id="site-footer"],
+html.focusflow-active [id="page-footer"],
+html.focusflow-active [id="site-header"],
+html.focusflow-active [id="page-header"],
+html.focusflow-active [id="masthead"],
+html.focusflow-active [id="header-wrapper"],
+html.focusflow-active [id="menu"],
+html.focusflow-active [id="top-menu"],
+html.focusflow-active [id="main-menu"],
+html.focusflow-active [id="toc"],
+html.focusflow-active [id="p-navigation"],
+html.focusflow-active [id="p-wiki"],
+html.focusflow-active [id="p-lang"],
+html.focusflow-active [id="p-cactions"] {
+  display: none !important;
+}
+
+/* Also hide the site header element if it is outside our summary banner */
+html.focusflow-active header:not(#focusflow-summary-banner header) {
+  display: none !important;
+}
+
+/* ── Hide provably-ad/spam elements (narrow, safe selectors only) ── */
 html.focusflow-active [data-ad],
 html.focusflow-active [data-ads],
 html.focusflow-active [id^="google_ads"],
@@ -98,7 +134,13 @@ html.focusflow-active img {
   max-width: 100% !important;
   height: auto !important;
   border-radius: 8px !important;
-  margin: 1rem 0 !important;
+  margin: 1.5rem 0 !important;
+  filter: contrast(0.85) !important;
+  transition: filter 0.3s ease !important;
+}
+
+html.focusflow-active img:hover {
+  filter: contrast(1) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -216,9 +258,9 @@ b.ff-bionic {
 }
 
 .ff-banner-inner {
-  background: linear-gradient(135deg, #EBF4FF 0%, #F0F4FF 100%);
+  background: linear-gradient(135deg, #F0FFF4 0%, #E6FFFA 100%);
   border: 1.5px solid var(--ff-border);
-  border-left: 4px solid var(--ff-accent);
+  border-left: 5px solid var(--ff-accent);
   border-radius: var(--ff-radius);
   padding: 24px 28px;
   box-shadow: var(--ff-shadow);
@@ -350,14 +392,14 @@ html.ff-adhd [style*="position:fixed"] {
 /* Soft paragraph hover highlight – reading rail */
 html.ff-adhd p:hover,
 html.ff-adhd li:hover {
-  background: rgba(90, 103, 216, 0.07) !important;
+  background: rgba(44, 122, 123, 0.08) !important;
   border-radius: 4px !important;
   outline: none !important;
 }
 
 /* Strong, visible focus rings for keyboard navigation */
 html.ff-adhd :focus-visible {
-  outline: 3px solid #5A67D8 !important;
+  outline: 3px solid var(--ff-accent) !important;
   outline-offset: 3px !important;
   border-radius: 4px !important;
 }
@@ -485,7 +527,7 @@ html.ff-elderly h4 {
 
 /* High-contrast, clearly underlined links */
 html.ff-elderly a {
-  color: #0000CC !important;
+  color: #006064 !important;
   text-decoration: underline !important;
   font-weight: 600 !important;
   text-underline-offset: 3px !important;
@@ -629,26 +671,26 @@ html.ff-autism p {
 
 /* The actual circular button */
 #ff-floating-widget::before {
-  content: "⚡";
+  content: "🪷";
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
-  background: linear-gradient(135deg, #5A67D8 0%, #667EEA 100%);
+  background: linear-gradient(135deg, #2C7A7B 0%, #319795 100%);
   border-radius: 50%;
-  box-shadow: 0 4px 20px rgba(90, 103, 216, 0.55),
-    0 0 0 3px rgba(90, 103, 216, 0.18);
+  box-shadow: 0 4px 20px rgba(44, 122, 123, 0.4),
+    0 0 0 3px rgba(44, 122, 123, 0.1);
   transition: transform 0.2s cubic-bezier(.34, 1.56, .64, 1),
     box-shadow 0.2s ease;
 }
 
 #ff-floating-widget:hover::before {
   transform: scale(1.1);
-  box-shadow: 0 6px 28px rgba(90, 103, 216, 0.7),
-    0 0 0 4px rgba(90, 103, 216, 0.25);
+  box-shadow: 0 6px 28px rgba(44, 122, 123, 0.5),
+    0 0 0 4px rgba(44, 122, 123, 0.2);
 }
 
 /* While dragging */
@@ -746,12 +788,12 @@ html.ff-autism p {
 }
 
 /* Panel Header */
-.ff-panel-header {
+.ff-floating-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 14px 14px 10px;
-  background: linear-gradient(135deg, #5A67D8, #667EEA);
+  background: linear-gradient(135deg, #2C7A7B, #319795);
 }
 
 .ff-panel-logo {
@@ -1135,6 +1177,23 @@ html.ff-autism p {
   transform: scale(0.97) !important;
 }
 
+#ff-card-close {
+  all: unset !important;
+  cursor: pointer !important;
+  color: #94A3B8 !important;
+  font-size: 16px !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  line-height: 1 !important;
+  margin-left: 8px !important;
+  transition: color 0.15s, background 0.15s !important;
+}
+
+#ff-card-close:hover {
+  color: #475569 !important;
+  background: rgba(148, 163, 184, 0.15) !important;
+}
+
 #ff-card-btn:disabled {
   opacity: 0.5 !important;
   cursor: default !important;
@@ -1188,4 +1247,144 @@ html.ff-autism p {
 
 #ff-summary-card[data-state="error"] #ff-card-btn {
   background: #DC2626 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Ad-Block Cosmetic Filtering
+   Applied via html.ff-adblock-active (set by content.js when
+   ffAdBlockEnabled is true). Collapses known ad containers so
+   blocked network requests don't leave blank white boxes.
+   The page's DOM structure is preserved — we only zero out
+   height/visibility, never remove nodes.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Known ad container attributes / classes ─────────────────── */
+html.ff-adblock-active ins.adsbygoogle,
+html.ff-adblock-active [class*="adsbygoogle"],
+html.ff-adblock-active [id^="google_ads_"],
+html.ff-adblock-active [id*="_ad_unit"],
+html.ff-adblock-active [data-ad-slot],
+html.ff-adblock-active [data-ad-unit],
+html.ff-adblock-active [data-ad-unit-id],
+html.ff-adblock-active [data-ad-client],
+html.ff-adblock-active [data-ad-format],
+html.ff-adblock-active [data-adunit],
+html.ff-adblock-active [class*="taboola"],
+html.ff-adblock-active [class*="outbrain"],
+html.ff-adblock-active [id*="taboola"],
+html.ff-adblock-active [id*="outbrain"],
+html.ff-adblock-active [class*="criteo"],
+html.ff-adblock-active [id*="criteo"],
+html.ff-adblock-active [class*="ad-slot"],
+html.ff-adblock-active [class*="ad_slot"],
+html.ff-adblock-active [class*="adslot"],
+html.ff-adblock-active [class*="banner-ad"],
+html.ff-adblock-active [class*="ad-banner"],
+html.ff-adblock-active [class*="advertisement"],
+html.ff-adblock-active [aria-label="advertisement"],
+html.ff-adblock-active [aria-label="Advertisement"] {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: none !important;
+  visibility: hidden !important;
+}
+
+/* ── iframes with known ad-domain src ────────────────────────── */
+html.ff-adblock-active iframe[src*="doubleclick.net"],
+html.ff-adblock-active iframe[src*="googlesyndication.com"],
+html.ff-adblock-active iframe[src*="googleadservices.com"],
+html.ff-adblock-active iframe[src*="adnxs.com"],
+html.ff-adblock-active iframe[src*="amazon-adsystem.com"],
+html.ff-adblock-active iframe[src*="taboola.com"],
+html.ff-adblock-active iframe[src*="outbrain.com"],
+html.ff-adblock-active iframe[src*="criteo.com"],
+html.ff-adblock-active iframe[src*="criteo.net"],
+html.ff-adblock-active iframe[src*="moatads.com"],
+html.ff-adblock-active iframe[src*="rubiconproject.com"],
+html.ff-adblock-active iframe[src*="pubmatic.com"],
+html.ff-adblock-active iframe[src*="openx.net"],
+html.ff-adblock-active iframe[src*="adsrvr.org"],
+html.ff-adblock-active iframe[src*="thetradedesk.com"],
+html.ff-adblock-active iframe[src*="adroll.com"],
+html.ff-adblock-active iframe[src*="sharethrough.com"],
+html.ff-adblock-active iframe[src*="media.net"],
+html.ff-adblock-active iframe[src*="propellerads.com"],
+html.ff-adblock-active iframe[src*="adsterra.com"],
+html.ff-adblock-active iframe[src*="mgid.com"],
+html.ff-adblock-active iframe[src*="exoclick.com"],
+html.ff-adblock-active iframe[src*="adform.net"] {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow: hidden !important;
+}
+
+/* ── Ad Popup / Overlay / Interstitial Suppression ─────────────
+   Targets fixed-position overlay elements that are clearly ad-
+   related (by class/id naming). Legitimate site modals (cookie
+   banners from the site itself, login dialogs, etc.) are NOT
+   targeted because we match only known ad-specific patterns.
+   ────────────────────────────────────────────────────────────── */
+
+/* Common ad-popup class/id patterns */
+html.ff-adblock-active [id*="popup-ad"],
+html.ff-adblock-active [id*="ad-popup"],
+html.ff-adblock-active [id*="ad_popup"],
+html.ff-adblock-active [id*="adpopup"],
+html.ff-adblock-active [class*="popup-ad"],
+html.ff-adblock-active [class*="ad-popup"],
+html.ff-adblock-active [class*="ad_popup"],
+html.ff-adblock-active [class*="adpopup"],
+html.ff-adblock-active [id*="interstitial"],
+html.ff-adblock-active [class*="interstitial"],
+html.ff-adblock-active [id*="overlay-ad"],
+html.ff-adblock-active [class*="overlay-ad"],
+html.ff-adblock-active [id*="ad-overlay"],
+html.ff-adblock-active [class*="ad-overlay"],
+html.ff-adblock-active [id*="sponsored-popup"],
+html.ff-adblock-active [class*="sponsored-popup"],
+/* Popunder / popin specific patterns */
+html.ff-adblock-active [class*="popunder"],
+html.ff-adblock-active [id*="popunder"],
+html.ff-adblock-active [class*="pop-in-ad"],
+html.ff-adblock-active [id*="pop-in-ad"],
+/* Taboola / Outbrain / Criteo modal wrappers */
+html.ff-adblock-active [id^="taboola-below"],
+html.ff-adblock-active [id^="taboola-mid"],
+html.ff-adblock-active [id^="taboola-right"],
+html.ff-adblock-active [class*="trc_related_container"],
+html.ff-adblock-active [class*="ob-widget"],
+html.ff-adblock-active [class*="OUTBRAIN"],
+/* PropellerAds / PopAds style full-screen overlays */
+html.ff-adblock-active [id*="propeller"],
+html.ff-adblock-active [class*="propeller"],
+html.ff-adblock-active [id*="popads"],
+html.ff-adblock-active [class*="popads"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+}
+
+/* Restore any scroll-lock the ad popup may have applied to body/html */
+html.ff-adblock-active body.noscroll,
+html.ff-adblock-active body.modal-open,
+html.ff-adblock-active body[style*="overflow: hidden"],
+html.ff-adblock-active body[style*="overflow:hidden"] {
+  overflow: auto !important;
 }
