@@ -19,6 +19,10 @@ const PROFILE_CLASSES = {
     autism: "ff-autism"
 };
 
+// ── RAG State ──────────────────────────────────────────────────
+/** @type {string[]} Holds text chunks of the current article */
+let ffChunks = [];
+
 /** Hostnames known to be non-article pages that Readability can't parse usefully. */
 const NON_ARTICLE_HOSTS = [
     "google.com", "google.co.in", "bing.com", "duckduckgo.com", "yahoo.com",  // search engines
@@ -67,6 +71,41 @@ const extractArticleContent = () => {
  * @returns {number} Word count.
  */
 const countWords = (text) => text.trim().split(/\s+/).length;
+
+// ─── RAG Utilities ──────────────────────────────────────────────────────────
+
+/**
+ * Splits text into chunks of roughly ~250 words, respecting sentence boundaries.
+ * @param {string} text 
+ * @param {number} targetWords 
+ * @returns {string[]}
+ */
+const chunkText = (text, targetWords = 250) => {
+    // Split by sentence endings (. ! ?)
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    const chunks = [];
+    let currentChunk = "";
+
+    for (const sentence of sentences) {
+        const sentenceWords = countWords(sentence);
+        const currentWords = countWords(currentChunk);
+
+        if (currentWords + sentenceWords > targetWords && currentChunk !== "") {
+            chunks.push(currentChunk.trim());
+            currentChunk = sentence;
+        } else {
+            currentChunk += " " + sentence;
+        }
+    }
+
+    if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+    }
+
+    return chunks;
+};
+
+// Removed local cosineSimilarity in favor of HF remote API
 
 /**
  * Creates and injects the summary banner element above the article.
@@ -186,9 +225,14 @@ const removeSummaryBanner = () => {
 
 /**
  * Activates Focus Mode: applies the CSS overlay class to <html>.
+ * Also automatically pops up the chatbot on the right of the screen.
  */
 const enableFocusMode = () => {
     document.documentElement.classList.add(FOCUS_MODE_CLASS);
+    // Automatically open the chatbot when Focus Mode is turned on
+    setTimeout(() => {
+        openChatPanel();
+    }, 800);
 };
 
 /**
@@ -554,6 +598,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             injectSummaryBanner(title, summaryHtml);
             enableFocusMode();
             sendResponse({ success: true });
+
+            // ── RAG: Initialize Embeddings ──
+            // Once the page is simplified, silently chunk the text and get embeddings
+            // so chatting is instant later.
+            setTimeout(() => {
+                initializeRAG().catch(e => console.error(e));
+                openChatPanel();
+            }, 1000);
+
         } catch (err) {
             console.error("[FocusFlow] Summary injection failed:", err);
             sendResponse({ success: false, error: err.message });
@@ -593,6 +646,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (action === "GET_PROFILES") {
         /** Returns the currently active profile states from the DOM. */
         sendResponse({ profiles: readActiveProfiles() });
+        return true;
+    }
+
+    if (action === "OPEN_CHAT") {
+        openChatPanel();
+        sendResponse({ success: true });
         return true;
     }
 
@@ -679,10 +738,14 @@ const isNearTopCenter = (x, y, threshold = 80) => {
 
 /**
  * Builds and injects the floating widget + panel into the page.
- * Safe to call multiple times — skips if the widget already exists.
+ * Safe to call multiple times — replaces existing widget to ensure updated HTML.
  */
 const injectFloatingWidget = () => {
-    if (document.getElementById(FF_WIDGET_ID)) return;
+    const existingWidget = document.getElementById(FF_WIDGET_ID);
+    if (existingWidget) {
+        // Remove old widget to rebuild with new HTML structure (e.g. Chat button)
+        existingWidget.remove();
+    }
 
     // ── Wrapper (acts as drag handle + position anchor) ───────────────────
     const widget = document.createElement("div");
@@ -741,6 +804,10 @@ const injectFloatingWidget = () => {
         <span class="ff-pi-dot${activeProfiles.autism ? " ff-pi-dot--on" : ""}"></span>
       </button>
       <div class="ff-panel-section-label">General</div>
+      <button class="ff-panel-item" data-action="OPEN_CHAT" title="Ask questions about this page">
+        <span class="ff-pi-icon">💬</span>
+        <span class="ff-pi-text"><span class="ff-pi-name">Chat with Page</span><span class="ff-pi-desc">Ask AI questions</span></span>
+      </button>
       <button class="ff-panel-item" data-action="SHOW_SUMMARY_CARD" title="Restore the summary card if you dismissed it">
         <span class="ff-pi-icon">📋</span>
         <span class="ff-pi-text"><span class="ff-pi-name">Show Summary Card</span><span class="ff-pi-desc">Restore inline card</span></span>
@@ -958,6 +1025,11 @@ const injectFloatingWidget = () => {
             if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
         }
 
+        if (action === "OPEN_CHAT") {
+            setPanel(false);
+            openChatPanel();
+        }
+
         if (action === "TOGGLE_FOCUS") {
             if (isFocusModeActive()) {
                 disableFocusMode();
@@ -1068,7 +1140,177 @@ const showWidgetToast = (message, type = "info") => {
 
 
 
-// (auto-inject is at the bottom of the file, after all const declarations)
+// ─── Chat with Page (RAG) ───────────────────────────────────────────────────
+
+const FF_CHAT_ID = "ff-chat-panel";
+
+/**
+ * Silently extracts the article and chunks it so it's ready for the chat UI.
+ */
+const initializeRAG = async () => {
+    if (ffChunks.length > 0) return; // Already initialized
+
+    const result = extractArticleContent();
+    if (result.error) throw new Error(result.error);
+
+    // Split article into ~150 word chunks for better retrieval granularity
+    ffChunks = chunkText(result.text, 150);
+
+    if (ffChunks.length === 0) throw new Error("Could not extract readable text.");
+    console.log(`[FocusFlow] RAG initialized: ${ffChunks.length} chunks ready for similarity search.`);
+};
+
+/**
+ * Creates and shows the chat panel.
+ */
+const openChatPanel = () => {
+    // Ensure RAG is initializing if they didn't click "Simplify" first
+    if (ffChunks.length === 0) {
+        initializeRAG().catch(e => console.error("[FocusFlow] Auto-init RAG failed:", e.message));
+    }
+
+    let chat = document.getElementById(FF_CHAT_ID);
+    if (!chat) {
+        chat = document.createElement("div");
+        chat.id = FF_CHAT_ID;
+        chat.innerHTML = `
+            <div class="ff-chat-header">
+                <div>
+                    <strong>Chat with Page</strong>
+                    <span>Ask FocusFlow AI</span>
+                </div>
+                <button class="ff-chat-close">✕</button>
+            </div>
+            <div class="ff-chat-history" id="ff-chat-history">
+                <div class="ff-chat-msg ff-chat-ai">Hi! I've read this page. What would you like to know?</div>
+            </div>
+            <form class="ff-chat-input-area" id="ff-chat-form">
+                <input type="text" id="ff-chat-input" placeholder="Ask a question..." autocomplete="off" required>
+                <button type="submit" id="ff-chat-submit">↑</button>
+            </form>
+        `;
+        document.body.appendChild(chat);
+
+        // Events
+        chat.querySelector(".ff-chat-close").addEventListener("click", () => {
+            chat.classList.remove("ff-chat-open");
+        });
+
+        const form = chat.querySelector("#ff-chat-form");
+        const input = chat.querySelector("#ff-chat-input");
+        const history = chat.querySelector("#ff-chat-history");
+
+        const appendMsg = (text, role) => {
+            const div = document.createElement("div");
+            div.className = `ff-chat-msg ff-chat-${role}`;
+            div.textContent = text;
+            history.appendChild(div);
+            history.scrollTop = history.scrollHeight;
+            return div;
+        };
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const question = input.value.trim();
+            if (!question) return;
+
+            input.value = "";
+
+            // ── Internal Slash Commands ──
+            if (question.startsWith("/")) {
+                const cmd = question.toLowerCase();
+
+                if (cmd === "/clear") {
+                    history.innerHTML = '<div class="ff-chat-msg ff-chat-ai">Hi! I\'ve read this page. What would you like to know?</div>';
+                    return;
+                }
+
+                appendMsg(question, "user");
+
+                if (cmd === "/help") {
+                    appendMsg("Available commands:\n/clear - Clear the chat history\n/help - Show this message\n/model - Show the AI models currently in use", "ai");
+                    return;
+                }
+
+                if (cmd === "/model") {
+                    appendMsg("Current AI Models powering FocusFlow:\n• LLM: Qwen/Qwen2.5-Coder-32B-Instruct:fastest\n• Context Engine: sentence-transformers/all-MiniLM-L6-v2", "ai");
+                    return;
+                }
+
+                appendMsg(`Unknown command: ${question}. Type /help for a list of available commands.`, "ai");
+                return;
+            }
+
+            appendMsg(question, "user");
+
+            const loadingMsg = appendMsg("Thinking...", "ai");
+            loadingMsg.classList.add("ff-chat-loading");
+
+            // RAG Flow
+            try {
+                // 1. If no chunks exist, try extracting text.
+                if (ffChunks.length === 0) {
+                    await initializeRAG();
+                }
+
+                if (ffChunks.length === 0) {
+                    throw new Error("Could not read the page content.");
+                }
+
+                // 2. Ask HF to compare the question against our chunks
+                const simRes = await chrome.runtime.sendMessage({
+                    action: "GET_SIMILAR_CHUNKS",
+                    question: question,
+                    chunks: ffChunks
+                });
+
+                if (!simRes || !simRes.success) {
+                    throw new Error("Failed to search page: " + (simRes?.error || "Unknown"));
+                }
+
+                const scores = simRes.scores; // Array of floats, same length as ffChunks (up to 40 max in api.js)
+
+                // 3. Find top 3 most similar chunks
+                const scoredChunks = ffChunks.slice(0, 40).map((chunk, i) => ({
+                    chunk,
+                    score: scores[i] || 0
+                }));
+
+                // Sort descending by score
+                scoredChunks.sort((a, b) => b.score - a.score);
+
+                // Take top 3
+                const topChunks = scoredChunks.slice(0, 3).map(sc => sc.chunk);
+                const context = topChunks.join("\n\n---\n\n");
+
+                // 4. Send to LLM
+                const chatRes = await chrome.runtime.sendMessage({
+                    action: "CHAT_WITH_CONTEXT",
+                    question,
+                    context
+                });
+
+                loadingMsg.remove();
+
+                if (chatRes && chatRes.success) {
+                    appendMsg(chatRes.answer, "ai");
+                } else {
+                    appendMsg(chatRes?.error || "Error asking AI.", "ai");
+                }
+
+            } catch (err) {
+                loadingMsg.remove();
+                appendMsg(`Error: ${err.message}`, "ai");
+            }
+        });
+    }
+
+    // Force reflow and slide in
+    requestAnimationFrame(() => {
+        chat.classList.add("ff-chat-open");
+        chat.querySelector("#ff-chat-input").focus();
+    });
+};
 
 
 // ─── Inline Summary Card ──────────────────────────────────────────────────────

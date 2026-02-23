@@ -86,6 +86,42 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         return true;
     }
 
+    // ── RAG: Get Similar Chunks via HF Sentence Similarity ────────────────────
+    if (message.action === "GET_SIMILAR_CHUNKS") {
+        const { question, chunks } = message;
+        const run = async () => {
+            try {
+                const stored = await chrome.storage.sync.get(["hfApiKey"]);
+                const apiKey = stored.hfApiKey || "";
+                const scores = await getSimilarChunks(question, chunks, apiKey);
+                sendResponse({ success: true, scores });
+            } catch (err) {
+                console.error("[FocusFlow Background] GET_SIMILAR_CHUNKS error:", err.message);
+                sendResponse({ success: false, error: err.message });
+            }
+        };
+        run();
+        return true;
+    }
+
+    // ── RAG: Chat with Context ────────────────────────────────────────────────
+    if (message.action === "CHAT_WITH_CONTEXT") {
+        const { question, context } = message;
+        const run = async () => {
+            try {
+                const stored = await chrome.storage.sync.get(["hfApiKey"]);
+                const apiKey = stored.hfApiKey || "";
+                const answer = await askQuestion(question, context, apiKey);
+                sendResponse({ success: true, answer });
+            } catch (err) {
+                console.error("[FocusFlow Background] CHAT_WITH_CONTEXT error:", err.message);
+                sendResponse({ success: false, error: err.message });
+            }
+        };
+        run();
+        return true;
+    }
+
     return false;
 });
 

@@ -6,6 +6,7 @@
 
 const HF_MODEL = "Qwen/Qwen2.5-Coder-32B-Instruct:fastest";
 const HF_API_BASE = "https://router.huggingface.co/v1/chat/completions";
+const HF_SIMILARITY_URL = "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2";
 
 /**
  * Builds the ADHD-accessibility system + user messages for the chat API.
@@ -120,6 +121,114 @@ const fetchSummary = async (articleText, apiKey) => {
   if (!rawText || rawText.trim() === "") {
     throw new Error("The AI returned an empty response. Please try again.");
   }
+
+  return rawText.trim();
+};
+
+/**
+ * Gets similarity scores for an array of chunks against a single question.
+ * @param {string} question - The user's question.
+ * @param {string[]} sentences - The array of text chunks from the article.
+ * @param {string} apiKey - HF Token.
+ * @returns {Promise<number[]>} Array of similarity scores between 0 and 1.
+ */
+const getSimilarChunks = async (question, sentences, apiKey) => {
+  if (!apiKey || apiKey.trim() === "") {
+    throw new Error("No API key found.");
+  }
+
+  let response;
+  try {
+    // Prevent HF 413 Payload Too Large by slicing to a reasonable chunk size.
+    // The HF Similarity API might struggle with 100+ chunks, so limit to top 40 items
+    const safeSentences = sentences.slice(0, 40);
+
+    response = await fetch(HF_SIMILARITY_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        inputs: {
+          source_sentence: question,
+          sentences: safeSentences
+        }
+      })
+    });
+  } catch (err) {
+    throw new Error(`Similarity network error: ${err.message}`);
+  }
+
+  if (response.status === 503 || response.status === 504) {
+    throw new Error("Similarity model is loading. Please try again in 10-20 seconds.");
+  }
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`Similarity API error: ${response.status} ${response.statusText} ${errText}`);
+  }
+
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  if (!Array.isArray(data)) throw new Error("Invalid response format from similarity API.");
+
+  return data; // Array of floats
+};
+
+/**
+ * Asks a question to the LLM using retrieved RAG context.
+ * @param {string} question - The user's query.
+ * @param {string} context - The combined relevant text chunks.
+ * @param {string} apiKey - The user's Hugging Face API key.
+ * @returns {Promise<string>} The AI's answer.
+ */
+const askQuestion = async (question, context, apiKey) => {
+  if (!apiKey || apiKey.trim() === "") {
+    throw new Error("No API key found.");
+  }
+
+  const messages = [
+    {
+      role: "system",
+      content:
+        "You are a helpful, precise reading assistant. The user will ask you a question about a specific article. " +
+        "You will be provided with EXCERPTS from the article. " +
+        "Answer the user's question USING ONLY the provided excerpts. " +
+        "If the answer is NOT in the excerpts, say 'I cannot find the answer to that in the article.' " +
+        "Do not use outside knowledge. Be concise but informative."
+    },
+    {
+      role: "user",
+      content: `EXCERPTS:\n---\n${context}\n---\n\nQUESTION: ${question}`
+    }
+  ];
+
+  const requestBody = {
+    model: HF_MODEL,
+    messages,
+    max_tokens: 1024,
+    temperature: 0.1, // Low temperature for high factual accuracy
+    stream: false
+  };
+
+  const response = await fetch(HF_API_BASE, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Chat API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const rawText = data?.choices?.[0]?.message?.content;
+
+  if (!rawText) throw new Error("Empty response from AI.");
 
   return rawText.trim();
 };

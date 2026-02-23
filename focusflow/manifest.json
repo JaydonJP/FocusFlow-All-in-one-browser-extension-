@@ -35,7 +35,8 @@
   },
   "host_permissions": [
     "<all_urls>",
-    "https://router.huggingface.co/*"
+    "https://router.huggingface.co/*",
+    "https://api-inference.huggingface.co/*"
   ],
   "content_scripts": [
     {

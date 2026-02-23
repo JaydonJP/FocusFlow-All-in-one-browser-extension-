@@ -1,6 +1,7 @@
 // ── DOM References ────────────────────────────────────────────
 const mainBtn = document.getElementById("mainBtn");
 const summarizeBtn = document.getElementById("summarizeBtn");
+const chatBtn = document.getElementById("chatBtn");
 const statusDot = document.getElementById("statusDot");
 const statusText = document.getElementById("statusText");
 const wordChip = document.getElementById("wordChip");
@@ -55,7 +56,7 @@ const setStatus = (active, words = null) => {
  */
 const setBtnActivate = () => {
     mainBtn.className = "btn-primary";
-    mainBtn.querySelector(".btn-label").textContent = "✨ Simplify";
+    mainBtn.querySelector(".btn-label").textContent = "🎯 Focus Mode";
     mainBtn.disabled = false;
 };
 
@@ -252,7 +253,8 @@ const handleSummarize = async () => {
         const wordLabel = `${wordCount.toLocaleString()} words`;
 
         // Step 3: Fetch AI summary via background service worker
-        showMessage("info", "🤖", `Sending ${wordLabel} to AI for summarization — this may take a moment…`);
+        setBtnLoading("AI is summarizing…");
+        showMessage("info", "🤖", `Sending ${wordLabel} to Llama 3.1 for summarization — this may take a moment…`);
 
         let summaryResult;
         try {
@@ -409,7 +411,7 @@ const initPopup = async () => {
     } catch {
         // Content script may not be injected yet
         setBtnActivate();
-        showMessage("info", "ℹ️", "Navigate to a web article and click 'Simplify'.");
+        showMessage("info", "ℹ️", "Navigate to a web article and click 'Focus Mode'.");
     }
 };
 
@@ -424,6 +426,16 @@ mainBtn.addEventListener("click", () => {
 
 summarizeBtn.addEventListener("click", () => {
     handleSummarize();
+});
+
+chatBtn.addEventListener("click", async () => {
+    try {
+        const tab = await getActiveTab();
+        await sendToContent(tab.id, { action: "OPEN_CHAT" });
+        window.close();
+    } catch (err) {
+        showMessage("error", "❌", "Cannot connect to page.");
+    }
 });
 
 adBlockToggle.addEventListener("change", (e) => {
