@@ -25,6 +25,25 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             }
         };
         run();
+        run();
+        return true;
+    }
+
+    // ── Task Manager extraction ──────────────────────────────────────────────
+    if (message.action === "EXTRACT_TASKS") {
+        const { text } = message;
+        const run = async () => {
+            try {
+                const stored = await chrome.storage.sync.get(["hfApiKey"]);
+                const apiKey = stored.hfApiKey || "";
+                const tasks = await fetchTasks(text, apiKey);
+                sendResponse({ success: true, tasks });
+            } catch (err) {
+                console.error("[FocusFlow Background] EXTRACT_TASKS error:", err.message);
+                sendResponse({ success: false, error: err.message });
+            }
+        };
+        run();
         return true;
     }
 

@@ -126,6 +126,91 @@ const fetchSummary = async (articleText, apiKey) => {
 };
 
 /**
+ * Builds the prompt messages for extracting tasks/actions from a page.
+ * @param {string} text - The article text to analyze.
+ * @returns {Array} Array of message objects for the chat API.
+ */
+const buildTasksMessages = (text) => {
+  return [
+    {
+      role: "system",
+      content:
+        "You are an AI assistant that extracts clear, actionable tasks from web pages so users know exactly what they need to do. " +
+        "You are helping users who may be overwhelmed by clutter, so be extremely direct and clear. " +
+        "Analyze the provided text and list every actionable step, form required, deadline, or button to click. " +
+        "If the page is just an informational article (like Wikipedia) and has no actionable tasks, reply ONLY with: 'No actionable tasks found on this page.'\n\n" +
+        "Output Rules:\n" +
+        "- Output ONLY a bulleted list of tasks.\n" +
+        "- For normal tasks, start the line with '✅ '\n" +
+        "- For deadlines, warnings, or critical constraints, start the line with '⚠️ '\n" +
+        "- Keep each task under 15 words if possible. Plain text only, no markdown formatting like bold/italics."
+    },
+    {
+      role: "user",
+      content: `Extract all actionable tasks, steps, and deadlines from the following text:\n\n${text}`
+    }
+  ];
+};
+
+/**
+ * Fetches extracted tasks from the Hugging Face Inference API.
+ * @param {string} articleText - The extracted article text.
+ * @param {string} apiKey - The user's Hugging Face API key.
+ * @returns {Promise<string>} The AI-generated task list.
+ */
+const fetchTasks = async (articleText, apiKey) => {
+  if (!apiKey || apiKey.trim() === "") {
+    throw new Error("No API key found. Please set your Hugging Face API key in the extension options.");
+  }
+
+  const trimmedText = trimToWordLimit(articleText);
+  const messages = buildTasksMessages(trimmedText);
+
+  const requestBody = {
+    model: HF_MODEL,
+    messages,
+    max_tokens: 1024,
+    temperature: 0.2, // Keep even lower for factual task extraction
+    stream: false
+  };
+
+  let response;
+  try {
+    response = await fetch(HF_API_BASE, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(requestBody)
+    });
+  } catch (networkError) {
+    throw new Error(`Network error: Could not reach Hugging Face API. ${networkError.message}`);
+  }
+
+  if (response.status === 401) throw new Error("Invalid API key.");
+  if (response.status === 429) throw new Error("Rate limit exceeded.");
+  if (response.status === 503) throw new Error("Model is loading. Please try again in 20–30 seconds.");
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const errJson = await response.json();
+      detail = errJson.error || errJson.message || "";
+    } catch (_) { }
+    throw new Error(`API error ${response.status}${detail ? ": " + detail : ""}`);
+  }
+
+  const data = await response.json();
+  const rawText = data?.choices?.[0]?.message?.content;
+
+  if (!rawText || rawText.trim() === "") {
+    throw new Error("The AI returned an empty response.");
+  }
+
+  return rawText.trim();
+};
+
+/**
  * Gets similarity scores for an array of chunks against a single question.
  * @param {string} question - The user's question.
  * @param {string[]} sentences - The array of text chunks from the article.
@@ -232,3 +317,13 @@ const askQuestion = async (question, context, apiKey) => {
 
   return rawText.trim();
 };
+// ── Export ──
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { fetchSummary, fetchTasks, getSimilarChunks, askQuestion };
+} else {
+  // Expose to background worker
+  self.fetchSummary = fetchSummary;
+  self.fetchTasks = fetchTasks;
+  self.getSimilarChunks = getSimilarChunks;
+  self.askQuestion = askQuestion;
+}

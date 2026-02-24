@@ -1,7 +1,9 @@
 // ── DOM References ────────────────────────────────────────────
 const mainBtn = document.getElementById("mainBtn");
 const summarizeBtn = document.getElementById("summarizeBtn");
+const taskManagerBtn = document.getElementById("taskManagerBtn");
 const chatBtn = document.getElementById("chatBtn");
+const translateBtn = document.getElementById("translateBtn");
 const statusDot = document.getElementById("statusDot");
 const statusText = document.getElementById("statusText");
 const wordChip = document.getElementById("wordChip");
@@ -90,6 +92,20 @@ const setSummarizeBtnLoading = (loading, label = "🪷 Summarize Page") => {
         summarizeBtn.className = "btn-secondary";
         summarizeBtn.querySelector(".btn-label").textContent = label;
         summarizeBtn.disabled = false;
+    }
+};
+
+/**
+ * Sets the task manager button into a loading state.
+ */
+const setTaskManagerBtnLoading = (loading, label = "📋 Task Manager") => {
+    if (loading) {
+        taskManagerBtn.className = "btn-secondary loading";
+        taskManagerBtn.disabled = true;
+    } else {
+        taskManagerBtn.className = "btn-secondary";
+        taskManagerBtn.querySelector(".btn-label").textContent = label;
+        taskManagerBtn.disabled = false;
     }
 };
 
@@ -307,6 +323,92 @@ const handleSummarize = async () => {
 };
 
 /**
+ * "Task Manager" — extracts page content and calls Qwen to extract actionable tasks.
+ */
+const handleTaskManager = async () => {
+    clearMessage();
+    setTaskManagerBtnLoading(true);
+    mainBtn.disabled = true;
+
+    try {
+        const tab = await getActiveTab();
+
+        // Step 1: Get API Key
+        const apiKey = await getApiKey();
+        if (!apiKey) {
+            showMessage("error", "🔑", "No API key set. Click 'Set API Key' below to add your Hugging Face key.");
+            setTaskManagerBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        // Step 2: Extract article content
+        showMessage("info", "📄", "Extracting page content for task analysis…");
+        let extractResult;
+        try {
+            extractResult = await sendToContent(tab.id, { action: "EXTRACT_CONTENT" });
+        } catch {
+            showMessage("error", "⚠️", "Cannot connect to page. Try reloading the tab and opening FocusFlow again.");
+            setTaskManagerBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        if (!extractResult.success) {
+            showMessage("error", "📄", extractResult.error);
+            setTaskManagerBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        const { article, wordCount } = extractResult;
+        const wordLabel = `${wordCount.toLocaleString()} words`;
+
+        // Step 3: Fetch Tasks via background worker
+        setBtnLoading("AI is analyzing tasks…");
+        showMessage("info", "🤖", `Scanning ${wordLabel} for actionable steps and deadlines…`);
+
+        let taskResult;
+        try {
+            taskResult = await chrome.runtime.sendMessage({
+                action: "EXTRACT_TASKS",
+                text: article.text,
+                apiKey
+            });
+        } catch (err) {
+            showMessage("error", "🌐", `API communication failed: ${err.message}`);
+            setTaskManagerBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        if (!taskResult.success) {
+            showMessage("error", "❌", taskResult.error);
+            setTaskManagerBtnLoading(false);
+            mainBtn.disabled = false;
+            return;
+        }
+
+        // Step 4: Inject the tasks side panel
+        await sendToContent(tab.id, {
+            action: "INJECT_TASKS",
+            title: article.title,
+            rawTasks: taskResult.tasks
+        });
+
+        setTaskManagerBtnLoading(false, "🔄 Refresh Tasks");
+        mainBtn.disabled = false;
+        showMessage("success", "✅", `Done! Task checklist is now open on the left.`);
+
+    } catch (err) {
+        console.error("[FocusFlow Popup Task Manager]", err);
+        showMessage("error", "❌", `Unexpected error: ${err.message}`);
+        setTaskManagerBtnLoading(false);
+        mainBtn.disabled = false;
+    }
+};
+
+/**
  * Toggles ad blocking via the background service worker.
  */
 const handleAdBlockToggle = async (enable) => {
@@ -408,6 +510,16 @@ const initPopup = async () => {
         // Load and render saved accessibility profiles
         await loadProfiles(tab.id);
 
+        // Check if the page is currently translated
+        const isTranslated = tab.url && new URL(tab.url).hostname.endsWith(".translate.goog");
+        if (isTranslated) {
+            translateBtn.querySelector(".btn-label").textContent = "↩️ Revert Translation";
+            translateBtn.classList.add("active");
+        } else {
+            translateBtn.querySelector(".btn-label").textContent = "🌍 Translate Page";
+            translateBtn.classList.remove("active");
+        }
+
     } catch {
         // Content script may not be injected yet
         setBtnActivate();
@@ -426,6 +538,20 @@ mainBtn.addEventListener("click", () => {
 
 summarizeBtn.addEventListener("click", () => {
     handleSummarize();
+});
+
+taskManagerBtn.addEventListener("click", () => {
+    handleTaskManager();
+});
+
+translateBtn.addEventListener("click", async () => {
+    try {
+        const tab = await getActiveTab();
+        await sendToContent(tab.id, { action: "TRANSLATE_PAGE" });
+        window.close(); // Close the popup after clicking Translate
+    } catch (err) {
+        showMessage("error", "❌", "Cannot connect to page.");
+    }
 });
 
 chatBtn.addEventListener("click", async () => {
